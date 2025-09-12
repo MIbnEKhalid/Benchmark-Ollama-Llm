@@ -90,15 +90,7 @@ Example configuration:
 
 ### Performance Overview
 ![Performance Overview](images/benchmark_performance_chart.png)
-*Figure 1: Overview of model performance metrics including response times and token generation speed across all tested models.*
-
-### Model Comparison
-![Model Comparison](images/model_comparison.png)
-*Figure 2: Side-by-side comparison of different models showing tokens/sec and latency metrics.*
-
-### Response Time Distribution
-![Response Time Distribution](images/response_distribution.png)
-*Figure 3: Distribution of response times for each model, showing consistency and outliers.*
+*Figure 1: Overview of models Response Time on i5 12400 (test1) vs i5 12400 (test2)*
 
 ## Output
 
