@@ -12,7 +12,6 @@ A comprehensive benchmarking tool for measuring and comparing the performance of
 - **Performance Metrics**:
   - Response time measurement
   - Token generation speed (tokens/sec)
-  - Memory usage tracking
   - Running averages and statistics
 - **Progress Tracking**:
   - Real-time progress reporting
@@ -91,20 +90,15 @@ Example configuration:
 
 ### Performance Overview
 ![Performance Overview](images/benchmark_performance_chart.png)
-*Figure 1: Overview of model performance metrics including response times, token generation speed, and memory usage across all tested models.*
+*Figure 1: Overview of model performance metrics including response times and token generation speed across all tested models.*
 
 ### Model Comparison
 ![Model Comparison](images/model_comparison.png)
-*Figure 2: Side-by-side comparison of different models showing tokens/sec, latency, and memory usage.*
+*Figure 2: Side-by-side comparison of different models showing tokens/sec and latency metrics.*
 
 ### Response Time Distribution
 ![Response Time Distribution](images/response_distribution.png)
 *Figure 3: Distribution of response times for each model, showing consistency and outliers.*
-
-You can generate these visualizations using the included `ollama_compare.py` script:
-```bash
-python ollama_compare.py --input ollama_results.json --output images/
-```
 
 ## Output
 
@@ -114,7 +108,6 @@ The benchmark generates two main output files:
    - Model responses
    - Timing information
    - Token counts
-   - Memory usage
    - Timestamps
 
 2. `ollama_benchmark.log`: Contains running log of:
@@ -134,7 +127,6 @@ Each benchmark result includes:
   "answer_length": 150,
   "estimated_tokens": 45,
   "tokens_per_sec": 36.58,
-  "memory_usage_mb": 1024,
   "answer": "model_response",
   "timestamp": "2025-09-12T10:30:00"
 }

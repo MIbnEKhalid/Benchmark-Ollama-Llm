@@ -32,25 +32,21 @@
             --transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Dark theme */
-        [data-theme="dark"] {
+        body {
+            /* Dark theme colors */
             --bg-primary: #1a1a1a;
             --bg-secondary: #2d2d2d;
             --text-primary: #ffffff;
             --text-secondary: #cccccc;
             --border-color: #404040;
-            
             color-scheme: dark;
-        }
-        
-        body {
+            
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
             line-height: 1.6;
             color: var(--text-primary);
             background-color: var(--bg-primary);
             margin: 0;
             padding: 0;
-            transition: background-color var(--transition-speed) var(--transition-easing);
         }
         
         .container {
@@ -89,42 +85,7 @@
             opacity: 0.9;
         }
         
-        .theme-toggle {
-            background: transparent !important;
-            border: 2px solid rgba(255, 255, 255, 0.2) !important;
-            padding: 0.5rem !important;
-            border-radius: 50% !important;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--transition-speed) var(--transition-easing);
-        }
-        
-        .theme-toggle:hover {
-            background: rgba(255, 255, 255, 0.1) !important;
-            transform: translateY(0) !important;
-            box-shadow: none !important;
-        }
-        
-        .theme-toggle svg {
-            width: 20px;
-            height: 20px;
-            stroke: white;
-        }
-        
-        .moon-icon {
-            display: none;
-        }
-        
-        [data-theme="dark"] .sun-icon {
-            display: none;
-        }
-        
-        [data-theme="dark"] .moon-icon {
-            display: block;
-        }
+        /* Theme toggle styles removed */
         
         .loading-overlay {
             position: absolute;
@@ -278,8 +239,16 @@
         
         .chart-container {
             position: relative;
-            height: 400px;
-            margin-bottom: 1rem;
+            height: 450px;
+            margin: 1.5rem 0 2rem;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .chart-container:hover {
+            transform: translateY(-2px);
         }
         
         .model-comparison {
@@ -362,30 +331,292 @@
         }
         
         .chart-container {
-            background-color: var(--bg-secondary);
-            border-radius: 8px;
-            padding: 1rem;
+            background-color: #1a1c23;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
         }
         
+        .table-responsive {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: var(--bg-secondary);
+        }
+
         .results-table {
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-        
-        .results-table th, .results-table td {
-            padding: 0.75rem;
-            text-align: left;
-            border-bottom: 1px solid #eee;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 0;
         }
         
         .results-table th {
-            background-color: #f8f9fa;
+            background-color: rgba(67, 97, 238, 0.1);
             font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 1rem 1.25rem;
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .results-table th:hover {
+            background-color: rgba(67, 97, 238, 0.2);
+        }
+
+        .results-table th .sort-icon {
+            display: inline-block;
+            margin-left: 0.5rem;
+            opacity: 0.5;
+            font-size: 0.8rem;
+            transition: opacity 0.2s ease;
+        }
+
+        .results-table th:hover .sort-icon {
+            opacity: 1;
+        }
+
+        .results-table th[aria-sort="ascending"] .sort-icon {
+            opacity: 1;
+            content: "↑";
+        }
+
+        .results-table th[aria-sort="descending"] .sort-icon {
+            opacity: 1;
+            content: "↓";
         }
         
-        .results-table tr:hover {
-            background-color: #f8f9fa;
+        /* Enhance cell styles for better readability */
+        .results-table td {
+            padding: 1rem 1.25rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            transition: all 0.2s ease;
+            vertical-align: middle;
+        }
+
+        /* Column specific widths for alignment */
+        .results-table th:nth-child(1),
+        .results-table td:nth-child(1) { /* Model */
+            width: 15%;
+            min-width: 120px;
+        }
+
+        .results-table th:nth-child(2),
+        .results-table td:nth-child(2) { /* Prompt */
+            width: 20%;
+            min-width: 150px;
+        }
+
+        .results-table th:nth-child(3),
+        .results-table td:nth-child(3), /* Time */
+        .results-table th:nth-child(4),
+        .results-table td:nth-child(4), /* Tokens/s */
+        .results-table th:nth-child(5),
+        .results-table td:nth-child(5) { /* Est. Tokens */
+            width: 10%;
+            min-width: 100px;
+            text-align: right;
+        }
+
+        .results-table th:nth-child(6),
+        .results-table td:nth-child(6) { /* Answer Length */
+            width: 10%;
+            min-width: 100px;
+            text-align: right;
+        }
+
+        .results-table th:nth-child(7),
+        .results-table td:nth-child(7) { /* Timestamp */
+            width: 12%;
+            min-width: 120px;
+        }
+
+        .results-table th:nth-child(8),
+        .results-table td:nth-child(8) { /* Answer Preview */
+            width: 23%;
+            min-width: 200px;
+        }
+
+        /* Add cell-specific styles */
+        .results-table td:nth-child(3), 
+        .results-table td:nth-child(4),
+        .results-table td:nth-child(5),
+        .results-table td:nth-child(6) {
+            font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 0.9rem;
+        }
+
+        /* Enhance prompt cell with truncation */
+        .results-table td:nth-child(2) {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Style timestamp column */
+        .results-table td:nth-child(7) {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Style the answer preview */
+        .answer-preview-container {
+            position: relative;
+        }
+
+        .answer-preview {
+            max-height: 120px;
+            overflow-y: hidden;
+            background: var(--bg-primary);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) var(--bg-primary);
+            position: relative;
+            transition: max-height 0.3s ease;
+        }
+
+        .answer-preview.expanded {
+            max-height: none;
+        }
+
+        .answer-preview-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(transparent, var(--bg-primary));
+            pointer-events: none;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .answer-preview.expanded + .answer-preview-overlay {
+            opacity: 0;
+        }
+
+        .read-more-btn {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.25rem 1rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 1;
+        }
+
+        .read-more-btn:hover {
+            background: var(--secondary);
+            transform: translateX(-50%) translateY(-2px);
+        }
+
+        .answer-preview::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .answer-preview::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 3px;
+        }
+
+        .answer-preview::-webkit-scrollbar-thumb {
+            background-color: var(--primary);
+            border-radius: 3px;
+        }
+        
+        .results-table td {
+            padding: 1rem 1.25rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.95rem;
+            transition: background-color 0.2s ease;
+        }
+        
+        .results-table tbody tr {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .results-table tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .results-table td:first-child,
+        .results-table th:first-child {
+            padding-left: 1.5rem;
+        }
+        
+        .results-table td:last-child,
+        .results-table th:last-child {
+            padding-right: 1.5rem;
+        }
+
+        /* Zebra striping for better readability */
+        .results-table tbody tr:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        /* Column specific styles */
+        .results-table td.model-cell {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .results-table td.time-cell,
+        .results-table td.tokens-cell {
+            font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 0.9rem;
+        }
+
+        .results-table td.prompt-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Badge enhancements */
+        .results-table .badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-weight: 500;
+            margin-left: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .badge-comparison {
+            background-color: var(--secondary);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+            vertical-align: middle;
+            margin-left: 0.5rem;
         }
         
         .file-inputs {
@@ -431,16 +662,7 @@
             color: white;
         }
         
-        .stats-row {
-            background-color: var(--bg-secondary);
-            border-bottom: 2px solid var(--border-color);
-        }
-        
-        .stats-row td {
-            padding: 1rem 0.75rem;
-            color: var(--text-secondary);
-        }
-        
+
         .comparison-value {
             display: flex;
             align-items: center;
@@ -470,84 +692,13 @@
             max-height: 150px;
             overflow-y: auto;
             padding: 0.5rem;
-            background: #f8f9fa;
+            background: var(--bg-primary);
             border-radius: 5px;
             font-size: 0.9rem;
             margin-top: 0.5rem;
         }
 
-        .error-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-
-        .error-stat-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        .error-stat-card h3 {
-            margin: 0 0 0.5rem 0;
-            color: var(--text-primary);
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .error-stats {
-            padding: 1rem;
-        }
-
-        .error-stat-card ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .error-stat-card li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .error-stat-card li:last-child {
-            border-bottom: none;
-        }
-
-        .error-stat-value {
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-        .error-category {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .error-category-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        .error-category-dot.timeout {
-            background-color: var(--warning);
-        }
-
-        .error-category-dot.retry {
-            background-color: var(--info);
-        }
-
-        .error-category-dot.error {
-            background-color: var(--danger);
-        }
+        /* Error Analysis styles removed */
 
         .config-grid {
             display: grid;
@@ -781,22 +932,6 @@
         <div class="container">
             <div class="header-content">
                 <h1>Ollama Model Performance Comparison</h1>
-                <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
-                    <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="5"/>
-                        <line x1="12" y1="1" x2="12" y2="3"/>
-                        <line x1="12" y1="21" x2="12" y2="23"/>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                        <line x1="1" y1="12" x2="3" y2="12"/>
-                        <line x1="21" y1="12" x2="23" y2="12"/>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                    </svg>
-                    <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                    </svg>
-                </button>
             </div>
             <p class="description">Compare the performance of different Ollama models based on response time, tokens per second, and answer quality.</p>
         </div>
@@ -827,89 +962,6 @@
 
         <div class="card">
             <div class="card-header">
-                <h2 class="card-title">Progress Tracking</h2>
-            </div>
-            <div class="progress-container">
-                <div class="progress-stats">
-                    <div class="progress-stat-card">
-                        <h3>Overall Progress</h3>
-                        <div class="progress-bar-container">
-                            <div 
-                                class="progress-bar" 
-                                id="overallProgress"
-                                role="progressbar" 
-                                aria-valuemin="0" 
-                                aria-valuemax="100" 
-                                aria-valuenow="0"
-                                aria-label="Overall benchmark progress">
-                                <div class="progress-fill"></div>
-                            </div>
-                            <div class="progress-label" id="progressLabel" aria-live="polite">0%</div>
-                        </div>
-                        <div class="progress-details" id="progressDetails">
-                            <span>Completed: 0/0</span>
-                            <span>ETA: --:--:--</span>
-                        </div>
-                    </div>
-                    <div class="progress-stat-card">
-                        <h3>Running Statistics</h3>
-                        <div id="runningStats">
-                            <div class="stat-row">
-                                <span>Avg. Response Time:</span>
-                                <span id="avgResponseTime">--</span>
-                            </div>
-                            <div class="stat-row">
-                                <span>Avg. Tokens/sec:</span>
-                                <span id="avgTokensPerSec">--</span>
-                            </div>
-                            <div class="stat-row">
-                                <span>Success Rate:</span>
-                                <span id="successRate">--</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="current-task" id="currentTask">
-                    <h3>Current Task</h3>
-                    <div class="task-info">Waiting for benchmark to start...</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Benchmark Configuration</h2>
-            </div>
-            <div class="config-grid">
-                <div class="config-section">
-                    <h3>Runtime Settings</h3>
-                    <dl class="config-list" id="runtimeConfig">
-                        <dt>Timeout:</dt>
-                        <dd>Loading...</dd>
-                        <dt>Max Retries:</dt>
-                        <dd>Loading...</dd>
-                    </dl>
-                </div>
-                <div class="config-section">
-                    <h3>Models</h3>
-                    <div class="model-tags" id="modelList">
-                        Loading...
-                    </div>
-                </div>
-                <div class="config-section">
-                    <h3>Output Files</h3>
-                    <dl class="config-list" id="outputConfig">
-                        <dt>Results File:</dt>
-                        <dd>Loading...</dd>
-                        <dt>Log File:</dt>
-                        <dd>Loading...</dd>
-                    </dl>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
                 <h2 class="card-title">Performance Overview</h2>
             </div>
             <div class="filters">
@@ -930,7 +982,6 @@
                         <option value="time_taken_sec" role="option">Response Time (seconds)</option>
                         <option value="tokens_per_sec" role="option">Tokens per Second</option>
                         <option value="answer_length" role="option">Answer Length (chars)</option>
-                        <option value="memory_usage_mb" role="option">Memory Usage (MB)</option>
                         <option value="estimated_tokens" role="option">Estimated Tokens</option>
                     </select>
                 </div>
@@ -970,31 +1021,8 @@
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Error Analysis</h2>
-            </div>
-            <div class="chart-container">
-                <canvas id="errorChart"></canvas>
-            </div>
-            <div class="error-stats">
-                <div class="error-grid">
-                    <div class="error-stat-card">
-                        <h3>Retry Attempts</h3>
-                        <div id="retryStats">Loading...</div>
-                    </div>
-                    <div class="error-stat-card">
-                        <h3>Timeouts</h3>
-                        <div id="timeoutStats">Loading...</div>
-                    </div>
-                    <div class="error-stat-card">
-                        <h3>Error Categories</h3>
-                        <div id="errorCategories">Loading...</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+        <!-- Error Analysis section removed -->
+        
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title">Detailed Results</h2>
@@ -1017,15 +1045,14 @@
                 <table class="results-table">
                     <thead>
                         <tr>
-                            <th>Model</th>
-                            <th>Prompt</th>
-                            <th>Time (s)</th>
-                            <th>Tokens/s</th>
-                            <th>Memory (MB)</th>
-                            <th>Est. Tokens</th>
-                            <th>Answer Length</th>
-                            <th>Timestamp</th>
-                            <th>Answer Preview</th>
+                            <th scope="col" aria-sort="none">Model <span class="sort-icon">↕</span></th>
+                            <th scope="col" aria-sort="none">Prompt <span class="sort-icon">↕</span></th>
+                            <th scope="col" aria-sort="none">Time (s) <span class="sort-icon">↕</span></th>
+                            <th scope="col" aria-sort="none">Tokens/s <span class="sort-icon">↕</span></th>
+                            <th scope="col" aria-sort="none">Est. Tokens <span class="sort-icon">↕</span></th>
+                            <th scope="col" aria-sort="none">Answer Length <span class="sort-icon">↕</span></th>
+                            <th scope="col" aria-sort="none">Timestamp <span class="sort-icon">↕</span></th>
+                            <th scope="col" aria-sort="none">Answer Preview</th>
                         </tr>
                     </thead>
                     <tbody id="resultsTableBody">
@@ -1042,217 +1069,6 @@
         let performanceChart;
         let comparisonChart1;
         let comparisonChart2;
-        let errorChart;
-        let startTime;
-        let totalTasks = 0;
-        let completedTasks = 0;
-
-        // Progress tracking functions
-        function updateProgress(current, total) {
-            const percent = Math.round((current / total) * 100);
-            const fill = document.querySelector('.progress-fill');
-            const label = document.getElementById('progressLabel');
-            const details = document.getElementById('progressDetails');
-            
-            fill.style.width = `${percent}%`;
-            label.textContent = `${percent}%`;
-            
-            // Calculate ETA
-            const elapsed = (Date.now() - startTime) / 1000;
-            const rate = current / elapsed;
-            const remaining = (total - current) / rate;
-            const eta = new Date(Date.now() + (remaining * 1000));
-            const etaString = eta.toLocaleTimeString();
-            
-            details.innerHTML = `
-                <span>Completed: ${current}/${total}</span>
-                <span>ETA: ${etaString}</span>
-            `;
-        }
-
-        function updateRunningStats(data) {
-            if (!data.length) return;
-
-            const stats = {
-                avgResponseTime: data.reduce((acc, item) => acc + item.time_taken_sec, 0) / data.length,
-                avgTokensPerSec: data.reduce((acc, item) => acc + (item.tokens_per_sec || 0), 0) / data.length,
-                successRate: (data.filter(item => !item.error).length / data.length) * 100
-            };
-
-            document.getElementById('avgResponseTime').textContent = `${stats.avgResponseTime.toFixed(2)}s`;
-            document.getElementById('avgTokensPerSec').textContent = `${stats.avgTokensPerSec.toFixed(2)}`;
-            document.getElementById('successRate').textContent = `${stats.successRate.toFixed(1)}%`;
-        }
-
-        function updateCurrentTask(model, prompt) {
-            const taskInfo = document.querySelector('.task-info');
-            taskInfo.innerHTML = `
-                <div>Model: <strong>${model}</strong></div>
-                <div>Prompt: <strong>${prompt.length > 50 ? prompt.substring(0, 47) + '...' : prompt}</strong></div>
-            `;
-        }
-
-        function initializeProgress(total) {
-            totalTasks = total;
-            completedTasks = 0;
-            startTime = Date.now();
-            updateProgress(0, total);
-        }
-
-        // Error analysis functions
-        function analyzeErrors(data) {
-            const errors = {
-                retryAttempts: 0,
-                timeouts: 0,
-                categories: {}
-            };
-
-            data.forEach(item => {
-                if (item.error) {
-                    if (item.error.includes('Timeout')) {
-                        errors.timeouts++;
-                    }
-                    const category = item.error.split(':')[0];
-                    errors.categories[category] = (errors.categories[category] || 0) + 1;
-                }
-                if (item.retryAttempts) {
-                    errors.retryAttempts += item.retryAttempts;
-                }
-            });
-
-            return errors;
-        }
-
-        function updateConfigDisplay(data) {
-            // Update runtime settings
-            const runtimeConfig = document.getElementById('runtimeConfig');
-            runtimeConfig.innerHTML = `
-                <dt>Timeout:</dt>
-                <dd>${data.timeout_seconds || 'N/A'} seconds</dd>
-                <dt>Max Retries:</dt>
-                <dd>${data.max_retries || 'N/A'}</dd>
-            `;
-
-            // Update model list
-            const modelList = document.getElementById('modelList');
-            const models = [...new Set(data.map(item => item.model))];
-            modelList.innerHTML = models
-                .map(model => `<span class="model-tag">${model}</span>`)
-                .join('');
-
-            // Update output configuration
-            const outputConfig = document.getElementById('outputConfig');
-            outputConfig.innerHTML = `
-                <dt>Results File:</dt>
-                <dd>${data.output_file || 'ollama_results.json'}</dd>
-                <dt>Log File:</dt>
-                <dd>${data.log_file || 'ollama_benchmark.log'}</dd>
-            `;
-        }
-
-        function updateErrorStats(data) {
-            const errors = analyzeErrors(data);
-            // Update retry stats
-            const retryStats = document.getElementById('retryStats');
-            const totalAttempts = errors.retryAttempts;
-            const successRate = ((data.length - Object.values(errors.categories).reduce((a, b) => a + b, 0)) / data.length * 100).toFixed(1);
-            retryStats.innerHTML = `
-                <ul>
-                    <li>Total Retries: <span class="error-stat-value">${totalAttempts}</span></li>
-                    <li>Success Rate: <span class="error-stat-value">${successRate}%</span></li>
-                </ul>
-            `;
-
-            // Update timeout stats
-            const timeoutStats = document.getElementById('timeoutStats');
-            const timeoutRate = (errors.timeouts / data.length * 100).toFixed(1);
-            timeoutStats.innerHTML = `
-                <ul>
-                    <li>Total Timeouts: <span class="error-stat-value">${errors.timeouts}</span></li>
-                    <li>Timeout Rate: <span class="error-stat-value">${timeoutRate}%</span></li>
-                </ul>
-            `;
-
-            // Update error categories
-            const errorCategories = document.getElementById('errorCategories');
-            const categoriesList = Object.entries(errors.categories)
-                .map(([category, count]) => `
-                    <li>
-                        <div class="error-category">
-                            <span class="error-category-dot ${category.toLowerCase()}"></span>
-                            ${category}
-                        </div>
-                        <span class="error-stat-value">${count}</span>
-                    </li>
-                `)
-                .join('');
-            errorCategories.innerHTML = `<ul>${categoriesList}</ul>`;
-
-            // Update error chart
-            updateErrorChart(errors);
-        }
-
-        function updateErrorChart(errors) {
-            const ctx = document.getElementById('errorChart').getContext('2d');
-            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
-            
-            const categories = Object.keys(errors.categories);
-            const counts = Object.values(errors.categories);
-
-            const config = {
-                type: 'bar',
-                data: {
-                    labels: categories,
-                    datasets: [{
-                        label: 'Error Occurrences',
-                        data: counts,
-                        backgroundColor: categories.map(() => 
-                            isDarkMode ? 'rgba(255, 99, 132, 0.5)' : 'rgba(255, 99, 132, 0.2)'),
-                        borderColor: categories.map(() => 'rgba(255, 99, 132, 1)'),
-                        borderWidth: 1,
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: isDarkMode ? '#404040' : '#e5e5e5'
-                            },
-                            ticks: {
-                                color: isDarkMode ? '#ffffff' : '#333333'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: isDarkMode ? '#ffffff' : '#333333'
-                            }
-                        }
-                    },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Error Distribution',
-                            color: isDarkMode ? '#ffffff' : '#333333'
-                        },
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
-            };
-
-            if (errorChart) {
-                errorChart.destroy();
-            }
-            errorChart = new Chart(ctx, config);
-        }
 
         // DOM elements
         const file1Input = document.getElementById('file1');
@@ -1282,38 +1098,6 @@
                 
                 // Update chart themes if they exist
                 updateChartsTheme(newTheme);
-            });
-        }
-        
-        function updateChartsTheme(theme) {
-            const chartConfig = {
-                light: {
-                    color: '#333333',
-                    gridColor: '#e5e5e5',
-                },
-                dark: {
-                    color: '#ffffff',
-                    gridColor: '#404040',
-                }
-            };
-            
-            const charts = [performanceChart, comparisonChart1, comparisonChart2].filter(chart => chart);
-            charts.forEach(chart => {
-                if (chart.options.scales.y) {
-                    chart.options.scales.y.grid.color = chartConfig[theme].gridColor;
-                    chart.options.scales.y.ticks.color = chartConfig[theme].color;
-                }
-                if (chart.options.scales.x) {
-                    chart.options.scales.x.grid.color = chartConfig[theme].gridColor;
-                    chart.options.scales.x.ticks.color = chartConfig[theme].color;
-                }
-                if (chart.options.scales.r) {
-                    chart.options.scales.r.grid.color = chartConfig[theme].gridColor;
-                    chart.options.scales.r.ticks.color = chartConfig[theme].color;
-                }
-                chart.options.plugins.title.color = chartConfig[theme].color;
-                chart.options.plugins.legend.labels.color = chartConfig[theme].color;
-                chart.update();
             });
         }
         
@@ -1362,7 +1146,7 @@
         function exportToJSON() {
             const jsonContent = JSON.stringify({
                 data: benchmarkData,
-                stats: calculateStats(benchmarkData),
+
                 exportDate: new Date().toISOString(),
                 comparisonData: comparisonData.length > 0 ? comparisonData : undefined
             }, null, 2);
@@ -1463,7 +1247,6 @@
         
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
-            initializeTheme();
             handleKeyboardNavigation();
             
             const exportCSVButton = document.getElementById('exportCSV');
@@ -1505,20 +1288,6 @@
                     initializeUI();
                     updatePerformanceChart();
                     updateResultsTable();
-                    updateErrorStats(benchmarkData);
-                    updateConfigDisplay(benchmarkData);
-                    
-                    // Initialize progress tracking
-                    const total = benchmarkData.length;
-                    initializeProgress(total);
-                    updateProgress(total, total);
-                    updateRunningStats(benchmarkData);
-                    
-                    // Show last task if available
-                    if (benchmarkData.length > 0) {
-                        const lastTask = benchmarkData[benchmarkData.length - 1];
-                        updateCurrentTask(lastTask.model, lastTask.prompt);
-                    }
                 } catch (error) {
                     alert('Error parsing JSON file: ' + error.message);
                 }
@@ -1531,7 +1300,15 @@
                 reader2.onload = function(e) {
                     try {
                         comparisonData = JSON.parse(e.target.result);
+                        // Add a source field to each record to distinguish them
+                        benchmarkData.forEach(item => item.source = 'primary');
+                        comparisonData.forEach(item => item.source = 'comparison');
+                        // Merge data for display
+                        benchmarkData = [...benchmarkData, ...comparisonData];
+                        // Update UI with combined data
+                        initializeUI();
                         updatePerformanceChart();
+                        updateResultsTable();
                     } catch (error) {
                         alert('Error parsing second JSON file: ' + error.message);
                     }
@@ -1604,9 +1381,18 @@
             datasets.push({
                 label: 'Primary Results',
                 data: primaryData,
-                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                backgroundColor: (context) => {
+                    const gradient = context.chart.ctx.createLinearGradient(0, 0, 0, context.chart.height);
+                    gradient.addColorStop(0, 'rgba(54, 162, 235, 0.8)');
+                    gradient.addColorStop(1, 'rgba(54, 162, 235, 0.3)');
+                    return gradient;
+                },
                 borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
+                borderWidth: 2,
+                shadowColor: 'rgba(54, 162, 235, 0.3)',
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowOffsetY: 4
             });
 
             // Comparison dataset if available
@@ -1626,9 +1412,18 @@
                 datasets.push({
                     label: 'Comparison Results',
                     data: compData,
-                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    backgroundColor: (context) => {
+                        const gradient = context.chart.ctx.createLinearGradient(0, 0, 0, context.chart.height);
+                        gradient.addColorStop(0, 'rgba(255, 99, 132, 0.8)');
+                        gradient.addColorStop(1, 'rgba(255, 99, 132, 0.3)');
+                        return gradient;
+                    },
                     borderColor: 'rgba(255, 99, 132, 1)',
-                    borderWidth: 1
+                    borderWidth: 2,
+                    shadowColor: 'rgba(255, 99, 132, 0.3)',
+                    shadowBlur: 10,
+                    shadowOffsetX: 0,
+                    shadowOffsetY: 4
                 });
             }
 
@@ -1649,8 +1444,14 @@
                     labels: models,
                     datasets: datasets.map(dataset => ({
                         ...dataset,
-                        borderRadius: 6,
-                        maxBarThickness: 50,
+                        borderRadius: 8,
+                        maxBarThickness: 60,
+                        backgroundColor: dataset.label === 'Primary Results' ? 
+                            'rgba(78, 121, 255, 0.85)' : 'rgba(255, 99, 132, 0.85)',
+                        borderColor: dataset.label === 'Primary Results' ? 
+                            'rgba(78, 121, 255, 1)' : 'rgba(255, 99, 132, 1)',
+                        shadowColor: 'rgba(0, 0, 0, 0.3)',
+                        shadowBlur: 10,
                         animations: {
                             y: {
                                 duration: 2000,
@@ -1662,6 +1463,14 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 20,
+                            right: 25,
+                            bottom: 20,
+                            left: 25
+                        }
+                    },
                     animation: {
                         duration: 1000,
                         easing: 'easeInOutQuart'
@@ -1672,17 +1481,35 @@
                             title: {
                                 display: true,
                                 text: metricLabels[selectedMetric],
+                                color: '#ffffff',
                                 font: {
-                                    weight: 'bold'
+                                    size: 14,
+                                    weight: '600',
+                                    family: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+                                },
+                                padding: {
+                                    top: 10,
+                                    bottom: 10
                                 }
                             },
                             grid: {
-                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#404040' : '#e5e5e5',
-                                drawBorder: false
+                                color: 'rgba(255, 255, 255, 0.08)',
+                                drawBorder: false,
+                                lineWidth: 0.5
                             },
                             ticks: {
-                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#333333',
-                                padding: 10
+                                color: 'rgba(255, 255, 255, 0.9)',
+                                padding: 12,
+                                font: {
+                                    size: 12,
+                                    family: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+                                },
+                                callback: function(value) {
+                                    if (value >= 1000) {
+                                        return value.toLocaleString();
+                                    }
+                                    return value.toFixed(1);
+                                }
                             }
                         },
                         x: {
@@ -1690,8 +1517,15 @@
                                 display: false
                             },
                             ticks: {
-                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#333333',
-                                padding: 10
+                                color: 'rgba(255, 255, 255, 0.9)',
+                                padding: 12,
+                                font: {
+                                    size: 12,
+                                    weight: '500',
+                                    family: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+                                },
+                                maxRotation: 45,
+                                minRotation: 45
                             }
                         }
                     },
@@ -1699,40 +1533,65 @@
                         title: {
                             display: true,
                             text: `Model Performance - ${selectedPrompt === 'all' ? 'All Prompts' : 'Selected Prompt'}`,
+                            color: '#ffffff',
                             font: {
-                                size: 16,
-                                weight: 'bold'
+                                size: 18,
+                                weight: '600',
+                                family: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
                             },
-                            padding: 20,
-                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#333333'
+                            padding: {
+                                top: 20,
+                                bottom: 24
+                            }
                         },
                         legend: {
                             position: 'bottom',
                             labels: {
                                 usePointStyle: true,
                                 padding: 20,
+                                color: '#ffffff',
                                 font: {
-                                    size: 12
+                                    size: 13,
+                                    weight: '500',
+                                    family: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
                                 },
-                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#333333'
+                                boxWidth: 8,
+                                boxHeight: 8
+                            },
+                            padding: {
+                                top: 16,
+                                bottom: 16
                             }
                         },
                         tooltip: {
-                            backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#2d2d2d' : '#ffffff',
-                            titleColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#333333',
-                            bodyColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#333333',
-                            borderColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#404040' : '#e5e5e5',
+                            enabled: true,
+                            backgroundColor: 'rgba(28, 32, 38, 0.98)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
                             borderWidth: 1,
                             cornerRadius: 8,
-                            padding: 12,
-                            boxPadding: 6,
+                            padding: 14,
+                            boxPadding: 8,
                             usePointStyle: true,
+                            titleFont: {
+                                size: 14,
+                                weight: '600',
+                                family: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+                            },
+                            bodyFont: {
+                                size: 13,
+                                family: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+                            },
                             callbacks: {
                                 title: function(tooltipItems) {
                                     return tooltipItems[0].label;
                                 },
                                 label: function(context) {
-                                    const value = context.raw.toFixed(2);
+                                    const value = context.raw.toLocaleString(undefined, {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
                                     let label = `${context.dataset.label}: ${value}`;
                                     
                                     // Add percentage difference if comparison data exists
@@ -1798,7 +1657,7 @@
                 return values.reduce((a, b) => a + b, 0) / values.length;
             });
 
-            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+            const isDarkMode = true;
             const gridColor = isDarkMode ? '#404040' : '#e5e5e5';
             const textColor = isDarkMode ? '#ffffff' : '#333333';
 
@@ -1825,6 +1684,14 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 20,
+                            right: 25,
+                            bottom: 20,
+                            left: 25
+                        }
+                    },
                     animation: {
                         duration: 1000,
                         easing: 'easeInOutQuart'
@@ -1936,37 +1803,7 @@
         }
 
         // Update results table
-        // Calculate statistics for comparison
-        function calculateStats(data) {
-            const stats = {
-                mean: {},
-                median: {},
-                stdDev: {}
-            };
-            
-            const metrics = ['time_taken_sec', 'tokens_per_sec', 'answer_length'];
-            
-            metrics.forEach(metric => {
-                const values = data.map(item => item[metric]).filter(val => !isNaN(val));
-                
-                // Mean
-                stats.mean[metric] = values.reduce((a, b) => a + b, 0) / values.length;
-                
-                // Median
-                const sorted = [...values].sort((a, b) => a - b);
-                const mid = Math.floor(sorted.length / 2);
-                stats.median[metric] = sorted.length % 2 === 0 
-                    ? (sorted[mid - 1] + sorted[mid]) / 2 
-                    : sorted[mid];
-                
-                // Standard Deviation
-                const mean = stats.mean[metric];
-                const squareDiffs = values.map(value => Math.pow(value - mean, 2));
-                stats.stdDev[metric] = Math.sqrt(squareDiffs.reduce((a, b) => a + b, 0) / values.length);
-            });
-            
-            return stats;
-        }
+        // Calculate statistics function removed
 
         // Format percentage difference
         function formatPercentDiff(value, baseValue) {
@@ -1988,26 +1825,8 @@
                 filteredData = filteredData.filter(item => item.prompt === promptFilter);
             }
 
-            // Calculate statistics
-            const stats = calculateStats(filteredData);
-
             // Clear table
             resultsTableBody.innerHTML = '';
-
-            // Add header row with statistics
-            const statsRow = document.createElement('tr');
-            statsRow.className = 'stats-row';
-            statsRow.innerHTML = `
-                <td colspan="2" style="font-weight: bold;">Statistics (Mean ± StdDev)</td>
-                <td>${stats.mean.time_taken_sec.toFixed(2)} ± ${stats.stdDev.time_taken_sec.toFixed(2)}</td>
-                <td>${stats.mean.tokens_per_sec.toFixed(2)} ± ${stats.stdDev.tokens_per_sec.toFixed(2)}</td>
-                <td>${stats.mean.memory_usage_mb?.toFixed(2) || 'N/A'} ± ${stats.stdDev.memory_usage_mb?.toFixed(2) || 'N/A'}</td>
-                <td>${Math.round(stats.mean.estimated_tokens || 0)} ± ${stats.stdDev.estimated_tokens?.toFixed(2) || 'N/A'}</td>
-                <td>${Math.round(stats.mean.answer_length)} ± ${stats.stdDev.answer_length.toFixed(2)}</td>
-                <td></td>
-                <td></td>
-            `;
-            resultsTableBody.appendChild(statsRow);
 
             // Sort data by time taken
             const sortedData = [...filteredData].sort((a, b) => a.time_taken_sec - b.time_taken_sec);
@@ -2019,9 +1838,10 @@
             sortedData.forEach(item => {
                 const row = document.createElement('tr');
                 
-                // Model
+                // Model with data source indicator
                 const modelCell = document.createElement('td');
-                modelCell.textContent = item.model;
+                modelCell.innerHTML = `${item.model} ${item.source === 'comparison' ? 
+                    '<span class="badge badge-secondary">Comparison</span>' : ''}`;
                 row.appendChild(modelCell);
                 
                 // Prompt
@@ -2084,11 +1904,34 @@
                 // Answer preview
                 const answerCell = document.createElement('td');
                 if (item.answer) {
+                    const previewContainer = document.createElement('div');
+                    previewContainer.className = 'answer-preview-container';
+                    
                     const preview = document.createElement('div');
                     preview.className = 'answer-preview';
-                    preview.textContent = item.answer.length > 200 ? 
-                        item.answer.substring(0, 197) + '...' : item.answer;
-                    answerCell.appendChild(preview);
+                    preview.textContent = item.answer;
+                    
+                    const overlay = document.createElement('div');
+                    overlay.className = 'answer-preview-overlay';
+                    
+                    const readMoreBtn = document.createElement('button');
+                    readMoreBtn.className = 'read-more-btn';
+                    readMoreBtn.textContent = 'Read more';
+                    readMoreBtn.setAttribute('aria-expanded', 'false');
+                    readMoreBtn.setAttribute('aria-label', 'Show full answer');
+                    
+                    readMoreBtn.addEventListener('click', function() {
+                        const isExpanded = preview.classList.contains('expanded');
+                        preview.classList.toggle('expanded');
+                        this.textContent = isExpanded ? 'Read more' : 'Show less';
+                        this.setAttribute('aria-expanded', !isExpanded);
+                        this.setAttribute('aria-label', isExpanded ? 'Show full answer' : 'Show less text');
+                    });
+                    
+                    previewContainer.appendChild(preview);
+                    previewContainer.appendChild(overlay);
+                    previewContainer.appendChild(readMoreBtn);
+                    answerCell.appendChild(previewContainer);
                 } else {
                     answerCell.textContent = 'No answer';
                 }

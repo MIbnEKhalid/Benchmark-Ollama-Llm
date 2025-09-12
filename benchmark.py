@@ -91,20 +91,6 @@ class OllamaBenchmark:
             if os.path.exists(backup_file):
                 os.remove(backup_file)
 
-    def get_system_metrics(self):
-        """Get current system metrics"""
-        try:
-            with open('/proc/meminfo', 'r') as f:
-                mem_info = f.read()
-                total = re.search(r'MemTotal:\s+(\d+)', mem_info)
-                available = re.search(r'MemAvailable:\s+(\d+)', mem_info)
-                if total and available:
-                    memory_usage = (int(total.group(1)) - int(available.group(1))) / 1024  # MB
-                    return {"memory_mb": round(memory_usage, 2)}
-        except:
-            pass
-        return {"memory_mb": 0}
-
     def estimate_tokens(self, text):
         """Improved token estimation"""
         word_count = len(text.split())
@@ -188,9 +174,6 @@ class OllamaBenchmark:
                 self.log_message(f"    ⏱️ Time taken: {elapsed} sec")
                 self.log_message(f"    📊 Speed: {tokens_per_sec} tokens/sec")
                 self.log_message(f"    📈 Running average: {progress['avg_tokens_per_sec']:.2f} tokens/sec")
-
-                # Get system metrics
-                system_metrics = self.get_system_metrics()
                 
                 # Append result
                 entry = {
@@ -199,9 +182,7 @@ class OllamaBenchmark:
                     "time_taken_sec": elapsed,
                     "answer_length": len(answer),
                     "estimated_tokens": token_count,
-                    "tokens_per_sec": tokens_per_sec,
-                    "memory_usage_mb": system_metrics["memory_mb"],
-                    "answer": answer,
+                    "tokens_per_sec": tokens_per_sec,                    "answer": answer,
                     "timestamp": datetime.now().isoformat()
                 }
                 self.results.append(entry)

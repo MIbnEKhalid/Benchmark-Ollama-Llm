@@ -4,9 +4,9 @@ import json
 import os
 import re
 import argparse
-import psutil
 import tiktoken
-from datetime import datetime
+import statistics
+from datetime import datetime, timedelta
 
 def load_config(config_path):
     """Load configuration from JSON file"""
@@ -93,19 +93,6 @@ def save_results():
         if os.path.exists(backup_file):
             os.remove(backup_file)
 
-def get_system_metrics():
-    """Get current system metrics"""
-    try:
-        with open('/proc/meminfo', 'r') as f:
-            mem_info = f.read()
-            total = re.search(r'MemTotal:\s+(\d+)', mem_info)
-            available = re.search(r'MemAvailable:\s+(\d+)', mem_info)
-            if total and available:
-                memory_usage = (int(total.group(1)) - int(available.group(1))) / 1024  # MB
-                return {"memory_mb": round(memory_usage, 2)}
-    except:
-        pass
-    return {"memory_mb": 0}
 
 def estimate_tokens(text):
     """Improved token estimation using common patterns"""
@@ -259,9 +246,6 @@ for model in models:
         log_message(f"    📈 Running average: {progress['avg_tokens_per_sec']:.2f} tokens/sec")
 
         # Append result
-        # Get system metrics
-        system_metrics = get_system_metrics()
-        
         entry = {
             "model": model,
             "prompt": prompt,
@@ -269,7 +253,6 @@ for model in models:
             "answer_length": len(answer),
             "estimated_tokens": token_count,
             "tokens_per_sec": tokens_per_sec,
-            "memory_usage_mb": system_metrics["memory_mb"],
             "answer": answer,
             "timestamp": datetime.now().isoformat()
         }
