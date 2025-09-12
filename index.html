@@ -1,0 +1,2102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ollama Model Performance Comparison</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.3.0/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.min.js"></script>
+    <style>
+        :root {
+            /* Light theme */
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --info: #4895ef;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            
+            /* Theme colors */
+            --bg-primary: #f5f7fb;
+            --bg-secondary: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --border-color: #eaeaea;
+            
+            /* Transitions */
+            --transition-speed: 0.3s;
+            --transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Dark theme */
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --border-color: #404040;
+            
+            color-scheme: dark;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: var(--bg-primary);
+            margin: 0;
+            padding: 0;
+            transition: background-color var(--transition-speed) var(--transition-easing);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        
+        .description {
+            max-width: 800px;
+            margin: 1rem auto;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .theme-toggle {
+            background: transparent !important;
+            border: 2px solid rgba(255, 255, 255, 0.2) !important;
+            padding: 0.5rem !important;
+            border-radius: 50% !important;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed) var(--transition-easing);
+        }
+        
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+            transform: translateY(0) !important;
+            box-shadow: none !important;
+        }
+        
+        .theme-toggle svg {
+            width: 20px;
+            height: 20px;
+            stroke: white;
+        }
+        
+        .moon-icon {
+            display: none;
+        }
+        
+        [data-theme="dark"] .sun-icon {
+            display: none;
+        }
+        
+        [data-theme="dark"] .moon-icon {
+            display: block;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: inherit;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-speed) var(--transition-easing);
+        }
+        
+        .loading .loading-overlay {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            transition: transform var(--transition-speed) var(--transition-easing),
+                        box-shadow var(--transition-speed) var(--transition-easing);
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.8rem;
+        }
+        
+        .card-title {
+            margin: 0;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+        
+        select, button {
+            padding: 0.6rem 1.2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            font-size: 1rem;
+            color: var(--text-primary);
+            transition: all var(--transition-speed) var(--transition-easing);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        button.secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        button.secondary:hover {
+            background: var(--bg-primary);
+            border-color: var(--primary);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236C757D' d='M2.9 4.7l2.8 2.8c.2.2.5.2.7 0l2.8-2.8c.3-.3.1-.7-.4-.7H3.2c-.4 0-.6.4-.3.7z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            padding-right: 2.5rem;
+        }
+        
+        select:hover, select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.1);
+        }
+        
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        button:hover {
+            background: var(--secondary);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(67, 97, 238, 0.15);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .loading {
+            opacity: 0.7;
+            cursor: wait;
+            pointer-events: none;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 1rem;
+        }
+        
+        .model-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .model-comparison {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters {
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+            
+            .file-inputs {
+                flex-direction: column;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .button-group button {
+                width: 100%;
+            }
+            
+            .card {
+                padding: 1rem;
+            }
+            
+            .results-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
+        
+        /* Accessibility improvements */
+        :focus-visible {
+            outline: 3px solid var(--primary);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+        
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        [role="button"],
+        button,
+        input,
+        select {
+            min-height: 44px;
+        }
+        
+        .chart-container {
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .results-table th, .results-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .results-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .results-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .file-inputs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .file-input {
+            flex: 1;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .badge-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .badge-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+        
+        .badge-success {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .badge-warning {
+            background-color: var(--warning);
+            color: white;
+        }
+        
+        .badge-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .stats-row {
+            background-color: var(--bg-secondary);
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .stats-row td {
+            padding: 1rem 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .comparison-value {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-2px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .answer-preview {
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .error-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .error-stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .error-stat-card h3 {
+            margin: 0 0 0.5rem 0;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .error-stats {
+            padding: 1rem;
+        }
+
+        .error-stat-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .error-stat-card li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .error-stat-card li:last-child {
+            border-bottom: none;
+        }
+
+        .error-stat-value {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .error-category {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .error-category-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .error-category-dot.timeout {
+            background-color: var(--warning);
+        }
+
+        .error-category-dot.retry {
+            background-color: var(--info);
+        }
+
+        .error-category-dot.error {
+            background-color: var(--danger);
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            padding: 1.5rem;
+        }
+
+        .config-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .config-section h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        .config-list {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.5rem 1rem;
+            margin: 0;
+        }
+
+        .config-list dt {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .config-list dd {
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .model-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .model-tag {
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .progress-container {
+            padding: 1.5rem;
+        }
+
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .progress-bar-container {
+            margin: 1rem 0;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--success) 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-label {
+            position: absolute;
+            right: 0;
+            top: -1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .progress-details {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .current-task {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .task-info {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        /* Base font size adjustments for better readability */
+        html {
+            font-size: 16px;
+        }
+
+        @media (max-width: 768px) {
+            html {
+                font-size: 14px;
+            }
+
+            .config-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .progress-stats {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .button-group button {
+                width: 100%;
+                margin: 0.25rem 0;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .filters > div {
+                width: 100%;
+            }
+
+            .model-comparison {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+            
+            .results-table {
+                font-size: 0.9rem;
+            }
+            
+            .results-table th, 
+            .results-table td {
+                padding: 0.5rem;
+            }
+        }
+
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            :root {
+                --primary: #0000FF;
+                --secondary: #800080;
+                --success: #008000;
+                --danger: #FF0000;
+                --warning: #FFA500;
+                --info: #0000FF;
+            }
+        }
+
+        /* Reduced motion preference */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            .card {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .button-group,
+            .theme-toggle {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>Ollama Model Performance Comparison</h1>
+                <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
+                    <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </button>
+            </div>
+            <p class="description">Compare the performance of different Ollama models based on response time, tokens per second, and answer quality.</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Upload Benchmark Results</h2>
+            </div>
+            <div class="file-inputs">
+                <div class="file-input">
+                    <label for="file1">Primary Results File:</label>
+                    <input type="file" id="file1" accept=".json" aria-required="true" aria-label="Choose primary results file">
+                </div>
+                <div class="file-input">
+                    <label for="file2">Comparison Results File (optional):</label>
+                    <input type="file" id="file2" accept=".json" aria-label="Choose optional comparison results file">
+                </div>
+            </div>
+            <div class="button-group" role="group" aria-label="Data management controls">
+                <button id="loadData" aria-label="Load selected data files">Load Data</button>
+                <button id="exportCSV" class="secondary" disabled aria-label="Export results to CSV file">Export CSV</button>
+                <button id="exportJSON" class="secondary" disabled aria-label="Export results to JSON file">Export JSON</button>
+                <button id="exportCharts" class="secondary" disabled aria-label="Export charts as images">Export Charts</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Progress Tracking</h2>
+            </div>
+            <div class="progress-container">
+                <div class="progress-stats">
+                    <div class="progress-stat-card">
+                        <h3>Overall Progress</h3>
+                        <div class="progress-bar-container">
+                            <div 
+                                class="progress-bar" 
+                                id="overallProgress"
+                                role="progressbar" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100" 
+                                aria-valuenow="0"
+                                aria-label="Overall benchmark progress">
+                                <div class="progress-fill"></div>
+                            </div>
+                            <div class="progress-label" id="progressLabel" aria-live="polite">0%</div>
+                        </div>
+                        <div class="progress-details" id="progressDetails">
+                            <span>Completed: 0/0</span>
+                            <span>ETA: --:--:--</span>
+                        </div>
+                    </div>
+                    <div class="progress-stat-card">
+                        <h3>Running Statistics</h3>
+                        <div id="runningStats">
+                            <div class="stat-row">
+                                <span>Avg. Response Time:</span>
+                                <span id="avgResponseTime">--</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Avg. Tokens/sec:</span>
+                                <span id="avgTokensPerSec">--</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Success Rate:</span>
+                                <span id="successRate">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="current-task" id="currentTask">
+                    <h3>Current Task</h3>
+                    <div class="task-info">Waiting for benchmark to start...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Benchmark Configuration</h2>
+            </div>
+            <div class="config-grid">
+                <div class="config-section">
+                    <h3>Runtime Settings</h3>
+                    <dl class="config-list" id="runtimeConfig">
+                        <dt>Timeout:</dt>
+                        <dd>Loading...</dd>
+                        <dt>Max Retries:</dt>
+                        <dd>Loading...</dd>
+                    </dl>
+                </div>
+                <div class="config-section">
+                    <h3>Models</h3>
+                    <div class="model-tags" id="modelList">
+                        Loading...
+                    </div>
+                </div>
+                <div class="config-section">
+                    <h3>Output Files</h3>
+                    <dl class="config-list" id="outputConfig">
+                        <dt>Results File:</dt>
+                        <dd>Loading...</dd>
+                        <dt>Log File:</dt>
+                        <dd>Loading...</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Performance Overview</h2>
+            </div>
+            <div class="filters">
+                <div>
+                    <label for="promptFilter">Filter by Prompt:</label>
+                    <select id="promptFilter" aria-label="Filter results by prompt">
+                        <option value="all">All Prompts</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="metricFilter">Metric:</label>
+                    <select 
+                        id="metricFilter" 
+                        aria-label="Select performance metric to display"
+                        tabindex="0"
+                        role="combobox"
+                        aria-expanded="false">
+                        <option value="time_taken_sec" role="option">Response Time (seconds)</option>
+                        <option value="tokens_per_sec" role="option">Tokens per Second</option>
+                        <option value="answer_length" role="option">Answer Length (chars)</option>
+                        <option value="memory_usage_mb" role="option">Memory Usage (MB)</option>
+                        <option value="estimated_tokens" role="option">Estimated Tokens</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Model Comparison</h2>
+            </div>
+            <div class="filters">
+                <div>
+                    <label for="model1">Model 1:</label>
+                    <select id="model1"></select>
+                </div>
+                <div>
+                    <label for="model2">Model 2:</label>
+                    <select id="model2"></select>
+                </div>
+                <div>
+                    <label for="comparePrompt">Prompt:</label>
+                    <select id="comparePrompt">
+                        <option value="all">All Prompts</option>
+                    </select>
+                </div>
+            </div>
+            <div class="model-comparison">
+                <div class="chart-container">
+                    <canvas id="comparisonChart1"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="comparisonChart2"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Error Analysis</h2>
+            </div>
+            <div class="chart-container">
+                <canvas id="errorChart"></canvas>
+            </div>
+            <div class="error-stats">
+                <div class="error-grid">
+                    <div class="error-stat-card">
+                        <h3>Retry Attempts</h3>
+                        <div id="retryStats">Loading...</div>
+                    </div>
+                    <div class="error-stat-card">
+                        <h3>Timeouts</h3>
+                        <div id="timeoutStats">Loading...</div>
+                    </div>
+                    <div class="error-stat-card">
+                        <h3>Error Categories</h3>
+                        <div id="errorCategories">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Detailed Results</h2>
+            </div>
+            <div class="filters">
+                <div>
+                    <label for="tableModelFilter">Filter by Model:</label>
+                    <select id="tableModelFilter">
+                        <option value="all">All Models</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="tablePromptFilter">Filter by Prompt:</label>
+                    <select id="tablePromptFilter">
+                        <option value="all">All Prompts</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Prompt</th>
+                            <th>Time (s)</th>
+                            <th>Tokens/s</th>
+                            <th>Memory (MB)</th>
+                            <th>Est. Tokens</th>
+                            <th>Answer Length</th>
+                            <th>Timestamp</th>
+                            <th>Answer Preview</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let benchmarkData = [];
+        let comparisonData = [];
+        let performanceChart;
+        let comparisonChart1;
+        let comparisonChart2;
+        let errorChart;
+        let startTime;
+        let totalTasks = 0;
+        let completedTasks = 0;
+
+        // Progress tracking functions
+        function updateProgress(current, total) {
+            const percent = Math.round((current / total) * 100);
+            const fill = document.querySelector('.progress-fill');
+            const label = document.getElementById('progressLabel');
+            const details = document.getElementById('progressDetails');
+            
+            fill.style.width = `${percent}%`;
+            label.textContent = `${percent}%`;
+            
+            // Calculate ETA
+            const elapsed = (Date.now() - startTime) / 1000;
+            const rate = current / elapsed;
+            const remaining = (total - current) / rate;
+            const eta = new Date(Date.now() + (remaining * 1000));
+            const etaString = eta.toLocaleTimeString();
+            
+            details.innerHTML = `
+                <span>Completed: ${current}/${total}</span>
+                <span>ETA: ${etaString}</span>
+            `;
+        }
+
+        function updateRunningStats(data) {
+            if (!data.length) return;
+
+            const stats = {
+                avgResponseTime: data.reduce((acc, item) => acc + item.time_taken_sec, 0) / data.length,
+                avgTokensPerSec: data.reduce((acc, item) => acc + (item.tokens_per_sec || 0), 0) / data.length,
+                successRate: (data.filter(item => !item.error).length / data.length) * 100
+            };
+
+            document.getElementById('avgResponseTime').textContent = `${stats.avgResponseTime.toFixed(2)}s`;
+            document.getElementById('avgTokensPerSec').textContent = `${stats.avgTokensPerSec.toFixed(2)}`;
+            document.getElementById('successRate').textContent = `${stats.successRate.toFixed(1)}%`;
+        }
+
+        function updateCurrentTask(model, prompt) {
+            const taskInfo = document.querySelector('.task-info');
+            taskInfo.innerHTML = `
+                <div>Model: <strong>${model}</strong></div>
+                <div>Prompt: <strong>${prompt.length > 50 ? prompt.substring(0, 47) + '...' : prompt}</strong></div>
+            `;
+        }
+
+        function initializeProgress(total) {
+            totalTasks = total;
+            completedTasks = 0;
+            startTime = Date.now();
+            updateProgress(0, total);
+        }
+
+        // Error analysis functions
+        function analyzeErrors(data) {
+            const errors = {
+                retryAttempts: 0,
+                timeouts: 0,
+                categories: {}
+            };
+
+            data.forEach(item => {
+                if (item.error) {
+                    if (item.error.includes('Timeout')) {
+                        errors.timeouts++;
+                    }
+                    const category = item.error.split(':')[0];
+                    errors.categories[category] = (errors.categories[category] || 0) + 1;
+                }
+                if (item.retryAttempts) {
+                    errors.retryAttempts += item.retryAttempts;
+                }
+            });
+
+            return errors;
+        }
+
+        function updateConfigDisplay(data) {
+            // Update runtime settings
+            const runtimeConfig = document.getElementById('runtimeConfig');
+            runtimeConfig.innerHTML = `
+                <dt>Timeout:</dt>
+                <dd>${data.timeout_seconds || 'N/A'} seconds</dd>
+                <dt>Max Retries:</dt>
+                <dd>${data.max_retries || 'N/A'}</dd>
+            `;
+
+            // Update model list
+            const modelList = document.getElementById('modelList');
+            const models = [...new Set(data.map(item => item.model))];
+            modelList.innerHTML = models
+                .map(model => `<span class="model-tag">${model}</span>`)
+                .join('');
+
+            // Update output configuration
+            const outputConfig = document.getElementById('outputConfig');
+            outputConfig.innerHTML = `
+                <dt>Results File:</dt>
+                <dd>${data.output_file || 'ollama_results.json'}</dd>
+                <dt>Log File:</dt>
+                <dd>${data.log_file || 'ollama_benchmark.log'}</dd>
+            `;
+        }
+
+        function updateErrorStats(data) {
+            const errors = analyzeErrors(data);
+            // Update retry stats
+            const retryStats = document.getElementById('retryStats');
+            const totalAttempts = errors.retryAttempts;
+            const successRate = ((data.length - Object.values(errors.categories).reduce((a, b) => a + b, 0)) / data.length * 100).toFixed(1);
+            retryStats.innerHTML = `
+                <ul>
+                    <li>Total Retries: <span class="error-stat-value">${totalAttempts}</span></li>
+                    <li>Success Rate: <span class="error-stat-value">${successRate}%</span></li>
+                </ul>
+            `;
+
+            // Update timeout stats
+            const timeoutStats = document.getElementById('timeoutStats');
+            const timeoutRate = (errors.timeouts / data.length * 100).toFixed(1);
+            timeoutStats.innerHTML = `
+                <ul>
+                    <li>Total Timeouts: <span class="error-stat-value">${errors.timeouts}</span></li>
+                    <li>Timeout Rate: <span class="error-stat-value">${timeoutRate}%</span></li>
+                </ul>
+            `;
+
+            // Update error categories
+            const errorCategories = document.getElementById('errorCategories');
+            const categoriesList = Object.entries(errors.categories)
+                .map(([category, count]) => `
+                    <li>
+                        <div class="error-category">
+                            <span class="error-category-dot ${category.toLowerCase()}"></span>
+                            ${category}
+                        </div>
+                        <span class="error-stat-value">${count}</span>
+                    </li>
+                `)
+                .join('');
+            errorCategories.innerHTML = `<ul>${categoriesList}</ul>`;
+
+            // Update error chart
+            updateErrorChart(errors);
+        }
+
+        function updateErrorChart(errors) {
+            const ctx = document.getElementById('errorChart').getContext('2d');
+            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+            
+            const categories = Object.keys(errors.categories);
+            const counts = Object.values(errors.categories);
+
+            const config = {
+                type: 'bar',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        label: 'Error Occurrences',
+                        data: counts,
+                        backgroundColor: categories.map(() => 
+                            isDarkMode ? 'rgba(255, 99, 132, 0.5)' : 'rgba(255, 99, 132, 0.2)'),
+                        borderColor: categories.map(() => 'rgba(255, 99, 132, 1)'),
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: isDarkMode ? '#404040' : '#e5e5e5'
+                            },
+                            ticks: {
+                                color: isDarkMode ? '#ffffff' : '#333333'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: isDarkMode ? '#ffffff' : '#333333'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Error Distribution',
+                            color: isDarkMode ? '#ffffff' : '#333333'
+                        },
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            };
+
+            if (errorChart) {
+                errorChart.destroy();
+            }
+            errorChart = new Chart(ctx, config);
+        }
+
+        // DOM elements
+        const file1Input = document.getElementById('file1');
+        const file2Input = document.getElementById('file2');
+        const loadDataButton = document.getElementById('loadData');
+        const promptFilter = document.getElementById('promptFilter');
+        const metricFilter = document.getElementById('metricFilter');
+        const model1Select = document.getElementById('model1');
+        const model2Select = document.getElementById('model2');
+        const comparePromptSelect = document.getElementById('comparePrompt');
+        const tableModelFilter = document.getElementById('tableModelFilter');
+        const tablePromptFilter = document.getElementById('tablePromptFilter');
+        const resultsTableBody = document.getElementById('resultsTableBody');
+
+        // Theme management
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            
+            const themeToggle = document.getElementById('themeToggle');
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                
+                // Update chart themes if they exist
+                updateChartsTheme(newTheme);
+            });
+        }
+        
+        function updateChartsTheme(theme) {
+            const chartConfig = {
+                light: {
+                    color: '#333333',
+                    gridColor: '#e5e5e5',
+                },
+                dark: {
+                    color: '#ffffff',
+                    gridColor: '#404040',
+                }
+            };
+            
+            const charts = [performanceChart, comparisonChart1, comparisonChart2].filter(chart => chart);
+            charts.forEach(chart => {
+                if (chart.options.scales.y) {
+                    chart.options.scales.y.grid.color = chartConfig[theme].gridColor;
+                    chart.options.scales.y.ticks.color = chartConfig[theme].color;
+                }
+                if (chart.options.scales.x) {
+                    chart.options.scales.x.grid.color = chartConfig[theme].gridColor;
+                    chart.options.scales.x.ticks.color = chartConfig[theme].color;
+                }
+                if (chart.options.scales.r) {
+                    chart.options.scales.r.grid.color = chartConfig[theme].gridColor;
+                    chart.options.scales.r.ticks.color = chartConfig[theme].color;
+                }
+                chart.options.plugins.title.color = chartConfig[theme].color;
+                chart.options.plugins.legend.labels.color = chartConfig[theme].color;
+                chart.update();
+            });
+        }
+        
+        // Loading state management
+        function setLoading(element, isLoading) {
+            if (isLoading) {
+                element.classList.add('loading');
+                if (!element.querySelector('.loading-overlay')) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'loading-overlay';
+                    const spinner = document.createElement('div');
+                    spinner.className = 'spinner';
+                    overlay.appendChild(spinner);
+                    element.appendChild(overlay);
+                }
+            } else {
+                element.classList.remove('loading');
+                const overlay = element.querySelector('.loading-overlay');
+                if (overlay) {
+                    overlay.remove();
+                }
+            }
+        }
+        
+        // Export functions
+        function exportToCSV() {
+            const headers = ['Model', 'Prompt', 'Time (s)', 'Tokens/s', 'Answer Length', 'Timestamp', 'Answer'];
+            let csvContent = headers.join(',') + '\n';
+            
+            benchmarkData.forEach(item => {
+                const row = [
+                    item.model,
+                    `"${item.prompt.replace(/"/g, '""')}"`,
+                    item.time_taken_sec,
+                    item.tokens_per_sec || '',
+                    item.answer_length || (item.answer ? item.answer.length : 0),
+                    item.timestamp || '',
+                    `"${(item.answer || '').replace(/"/g, '""')}"`
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+            
+            downloadFile('benchmark_results.csv', 'text/csv;charset=utf-8;', csvContent);
+        }
+        
+        function exportToJSON() {
+            const jsonContent = JSON.stringify({
+                data: benchmarkData,
+                stats: calculateStats(benchmarkData),
+                exportDate: new Date().toISOString(),
+                comparisonData: comparisonData.length > 0 ? comparisonData : undefined
+            }, null, 2);
+            
+            downloadFile('benchmark_results.json', 'application/json;charset=utf-8;', jsonContent);
+        }
+        
+        async function exportCharts() {
+            const charts = [
+                { chart: performanceChart, name: 'performance' },
+                { chart: comparisonChart1, name: 'comparison1' },
+                { chart: comparisonChart2, name: 'comparison2' }
+            ].filter(item => item.chart);
+            
+            for (const { chart, name } of charts) {
+                const dataUrl = chart.toBase64Image();
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = `benchmark_${name}_chart.png`;
+                a.click();
+                await new Promise(resolve => setTimeout(resolve, 500)); // Delay between downloads
+            }
+        }
+        
+        function downloadFile(filename, mimeType, content) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Keyboard navigation
+        function handleKeyboardNavigation() {
+            const focusableElements = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"]), .model-tag, .error-stat-card, .config-section';
+            
+            // Make elements focusable
+            document.querySelectorAll('.model-tag, .error-stat-card, .config-section').forEach(el => {
+                if (!el.getAttribute('tabindex')) {
+                    el.setAttribute('tabindex', '0');
+                }
+            });
+            
+            // Add keyboard interaction for cards
+            document.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        const expandable = this.querySelector('.card-content');
+                        if (expandable) {
+                            expandable.style.display = 
+                                expandable.style.display === 'none' ? 'block' : 'none';
+                            e.preventDefault();
+                        }
+                    }
+                });
+            });
+            
+            // Handle keyboard navigation within modal/overlay
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    // Close any open overlays/modals
+                    const loadingOverlays = document.querySelectorAll('.loading-overlay');
+                    loadingOverlays.forEach(overlay => {
+                        overlay.style.display = 'none';
+                    });
+                }
+                
+                // Add arrow key navigation for select elements
+                if (document.activeElement.tagName === 'SELECT') {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        const select = document.activeElement;
+                        const currentIndex = select.selectedIndex;
+                        const maxIndex = select.options.length - 1;
+                        
+                        if (e.key === 'ArrowUp') {
+                            select.selectedIndex = currentIndex > 0 ? currentIndex - 1 : maxIndex;
+                        } else {
+                            select.selectedIndex = currentIndex < maxIndex ? currentIndex + 1 : 0;
+                        }
+                        
+                        select.dispatchEvent(new Event('change'));
+                    }
+                }
+            });
+            
+            // Add focus trap for modals/overlays
+            document.addEventListener('focusin', function(e) {
+                const loadingOverlay = document.querySelector('.loading-overlay[style*="visible"]');
+                if (loadingOverlay && !loadingOverlay.contains(e.target)) {
+                    e.preventDefault();
+                    loadingOverlay.focus();
+                }
+            });
+        }
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTheme();
+            handleKeyboardNavigation();
+            
+            const exportCSVButton = document.getElementById('exportCSV');
+            const exportJSONButton = document.getElementById('exportJSON');
+            const exportChartsButton = document.getElementById('exportCharts');
+            
+            loadDataButton.addEventListener('click', function() {
+                loadFiles();
+                exportCSVButton.disabled = false;
+                exportJSONButton.disabled = false;
+                exportChartsButton.disabled = false;
+            });
+            
+            exportCSVButton.addEventListener('click', exportToCSV);
+            exportJSONButton.addEventListener('click', exportToJSON);
+            exportChartsButton.addEventListener('click', exportCharts);
+            
+            metricFilter.addEventListener('change', updatePerformanceChart);
+            promptFilter.addEventListener('change', updatePerformanceChart);
+            model1Select.addEventListener('change', updateModelComparison);
+            model2Select.addEventListener('change', updateModelComparison);
+            comparePromptSelect.addEventListener('change', updateModelComparison);
+            tableModelFilter.addEventListener('change', updateResultsTable);
+            tablePromptFilter.addEventListener('change', updateResultsTable);
+        });
+
+        // Load JSON files
+        function loadFiles() {
+            const file1 = file1Input.files[0];
+            if (!file1) {
+                alert('Please select at least one JSON file');
+                return;
+            }
+
+            const reader1 = new FileReader();
+            reader1.onload = function(e) {
+                try {
+                    benchmarkData = JSON.parse(e.target.result);
+                    initializeUI();
+                    updatePerformanceChart();
+                    updateResultsTable();
+                    updateErrorStats(benchmarkData);
+                    updateConfigDisplay(benchmarkData);
+                    
+                    // Initialize progress tracking
+                    const total = benchmarkData.length;
+                    initializeProgress(total);
+                    updateProgress(total, total);
+                    updateRunningStats(benchmarkData);
+                    
+                    // Show last task if available
+                    if (benchmarkData.length > 0) {
+                        const lastTask = benchmarkData[benchmarkData.length - 1];
+                        updateCurrentTask(lastTask.model, lastTask.prompt);
+                    }
+                } catch (error) {
+                    alert('Error parsing JSON file: ' + error.message);
+                }
+            };
+            reader1.readAsText(file1);
+
+            const file2 = file2Input.files[0];
+            if (file2) {
+                const reader2 = new FileReader();
+                reader2.onload = function(e) {
+                    try {
+                        comparisonData = JSON.parse(e.target.result);
+                        updatePerformanceChart();
+                    } catch (error) {
+                        alert('Error parsing second JSON file: ' + error.message);
+                    }
+                };
+                reader2.readAsText(file2);
+            } else {
+                comparisonData = [];
+            }
+        }
+
+        // Initialize UI elements with data
+        function initializeUI() {
+            // Get unique prompts and models
+            const prompts = [...new Set(benchmarkData.map(item => item.prompt))];
+            const models = [...new Set(benchmarkData.map(item => item.model))];
+
+            // Populate prompt filters
+            populateSelect(promptFilter, prompts, 'all');
+            populateSelect(comparePromptSelect, prompts, 'all');
+            populateSelect(tablePromptFilter, prompts, 'all');
+
+            // Populate model filters
+            populateSelect(model1Select, models, models[0]);
+            populateSelect(model2Select, models, models.length > 1 ? models[1] : models[0]);
+            populateSelect(tableModelFilter, models, 'all');
+        }
+
+        // Populate a select element with options
+        function populateSelect(selectElement, options, defaultValue) {
+            selectElement.innerHTML = '';
+            const allOption = document.createElement('option');
+            allOption.value = 'all';
+            allOption.textContent = 'All';
+            selectElement.appendChild(allOption);
+
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option.length > 50 ? option.substring(0, 47) + '...' : option;
+                selectElement.appendChild(optionElement);
+            });
+
+            if (defaultValue) {
+                selectElement.value = defaultValue;
+            }
+        }
+
+        // Update performance chart
+        function updatePerformanceChart() {
+            const selectedPrompt = promptFilter.value;
+            const selectedMetric = metricFilter.value;
+            
+            // Filter data based on selected prompt
+            let filteredData = benchmarkData;
+            if (selectedPrompt !== 'all') {
+                filteredData = benchmarkData.filter(item => item.prompt === selectedPrompt);
+            }
+
+            // Group data by model
+            const models = [...new Set(filteredData.map(item => item.model))];
+            const datasets = [];
+
+            // Primary dataset
+            const primaryData = models.map(model => {
+                const modelData = filteredData.filter(item => item.model === model);
+                const values = modelData.map(item => item[selectedMetric] || 0);
+                return values.reduce((a, b) => a + b, 0) / values.length;
+            });
+
+            datasets.push({
+                label: 'Primary Results',
+                data: primaryData,
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            });
+
+            // Comparison dataset if available
+            if (comparisonData.length > 0) {
+                let compFilteredData = comparisonData;
+                if (selectedPrompt !== 'all') {
+                    compFilteredData = comparisonData.filter(item => item.prompt === selectedPrompt);
+                }
+
+                const compModels = [...new Set(compFilteredData.map(item => item.model))];
+                const compData = compModels.map(model => {
+                    const modelData = compFilteredData.filter(item => item.model === model);
+                    const values = modelData.map(item => item[selectedMetric] || 0);
+                    return values.reduce((a, b) => a + b, 0) / values.length;
+                });
+
+                datasets.push({
+                    label: 'Comparison Results',
+                    data: compData,
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                });
+            }
+
+            // Get metric label
+            const metricLabels = {
+                'time_taken_sec': 'Response Time (seconds)',
+                'tokens_per_sec': 'Tokens per Second',
+                'answer_length': 'Answer Length (characters)'
+            };
+
+            // Create or update chart
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            // Enhanced chart configuration
+            const chartConfig = {
+                type: 'bar',
+                data: {
+                    labels: models,
+                    datasets: datasets.map(dataset => ({
+                        ...dataset,
+                        borderRadius: 6,
+                        maxBarThickness: 50,
+                        animations: {
+                            y: {
+                                duration: 2000,
+                                delay: (ctx) => ctx.dataIndex * 100
+                            }
+                        }
+                    }))
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: metricLabels[selectedMetric],
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#404040' : '#e5e5e5',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#333333',
+                                padding: 10
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#333333',
+                                padding: 10
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Model Performance - ${selectedPrompt === 'all' ? 'All Prompts' : 'Selected Prompt'}`,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            padding: 20,
+                            color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#333333'
+                        },
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: {
+                                    size: 12
+                                },
+                                color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#333333'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#2d2d2d' : '#ffffff',
+                            titleColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#333333',
+                            bodyColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#333333',
+                            borderColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#404040' : '#e5e5e5',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 12,
+                            boxPadding: 6,
+                            usePointStyle: true,
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    return tooltipItems[0].label;
+                                },
+                                label: function(context) {
+                                    const value = context.raw.toFixed(2);
+                                    let label = `${context.dataset.label}: ${value}`;
+                                    
+                                    // Add percentage difference if comparison data exists
+                                    if (datasets.length > 1 && context.datasetIndex === 1) {
+                                        const baseValue = datasets[0].data[context.dataIndex];
+                                        const diff = ((context.raw - baseValue) / baseValue * 100).toFixed(1);
+                                        const sign = diff > 0 ? '+' : '';
+                                        label += ` (${sign}${diff}%)`;
+                                    }
+                                    
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'nearest'
+                    }
+                }
+            };
+
+            if (performanceChart) {
+                performanceChart.data = chartConfig.data;
+                performanceChart.options = chartConfig.options;
+                performanceChart.update('none'); // Update without animation for smooth transition
+            } else {
+                performanceChart = new Chart(ctx, chartConfig);
+            }
+        }
+
+        // Update model comparison charts
+        function updateModelComparison() {
+            const model1 = model1Select.value;
+            const model2 = model2Select.value;
+            const prompt = comparePromptSelect.value;
+
+            if (!model1 || !model2) return;
+
+            // Filter data for model 1
+            let model1Data = benchmarkData.filter(item => item.model === model1);
+            if (prompt !== 'all') {
+                model1Data = model1Data.filter(item => item.prompt === prompt);
+            }
+
+            // Filter data for model 2
+            let model2Data = benchmarkData.filter(item => item.model === model2);
+            if (prompt !== 'all') {
+                model2Data = model2Data.filter(item => item.prompt === prompt);
+            }
+
+            // Prepare data for charts
+            const metrics = ['time_taken_sec', 'tokens_per_sec', 'answer_length'];
+            const metricLabels = ['Response Time (s)', 'Tokens/s', 'Answer Length'];
+            
+            const model1Values = metrics.map(metric => {
+                const values = model1Data.map(item => item[metric] || 0);
+                return values.reduce((a, b) => a + b, 0) / values.length;
+            });
+
+            const model2Values = metrics.map(metric => {
+                const values = model2Data.map(item => item[metric] || 0);
+                return values.reduce((a, b) => a + b, 0) / values.length;
+            });
+
+            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+            const gridColor = isDarkMode ? '#404040' : '#e5e5e5';
+            const textColor = isDarkMode ? '#ffffff' : '#333333';
+
+            // Enhanced radar chart configuration
+            const radarConfig = (model, values, colors) => ({
+                type: 'radar',
+                data: {
+                    labels: metricLabels,
+                    datasets: [{
+                        label: model,
+                        data: values,
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                        pointBackgroundColor: colors.point,
+                        pointBorderColor: isDarkMode ? '#2d2d2d' : '#ffffff',
+                        pointHoverBackgroundColor: isDarkMode ? '#2d2d2d' : '#ffffff',
+                        pointHoverBorderColor: colors.border,
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        lineTension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            grid: {
+                                color: gridColor,
+                                circular: true
+                            },
+                            angleLines: {
+                                color: gridColor
+                            },
+                            pointLabels: {
+                                color: textColor,
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                color: textColor,
+                                backdropColor: 'transparent',
+                                font: {
+                                    size: 10
+                                },
+                                callback: function(value) {
+                                    if (value >= 1000) {
+                                        return (value / 1000).toFixed(1) + 'k';
+                                    }
+                                    return value;
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${model} Performance Profile`,
+                            color: textColor,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            padding: 20
+                        },
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: textColor,
+                                usePointStyle: true,
+                                padding: 20,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: isDarkMode ? '#2d2d2d' : '#ffffff',
+                            titleColor: textColor,
+                            bodyColor: textColor,
+                            borderColor: gridColor,
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw.toFixed(2);
+                                    const metricName = metricLabels[context.dataIndex];
+                                    return `${metricName}: ${value}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Create or update radar charts with enhanced configurations
+            const ctx1 = document.getElementById('comparisonChart1').getContext('2d');
+            const config1 = radarConfig(model1, model1Values, {
+                background: 'rgba(54, 162, 235, 0.15)',
+                border: 'rgba(54, 162, 235, 0.8)',
+                point: 'rgba(54, 162, 235, 1)'
+            });
+
+            const ctx2 = document.getElementById('comparisonChart2').getContext('2d');
+            const config2 = radarConfig(model2, model2Values, {
+                background: 'rgba(255, 99, 132, 0.15)',
+                border: 'rgba(255, 99, 132, 0.8)',
+                point: 'rgba(255, 99, 132, 1)'
+            });
+
+            if (comparisonChart1) {
+                comparisonChart1.data = config1.data;
+                comparisonChart1.options = config1.options;
+                comparisonChart1.update('none');
+            } else {
+                comparisonChart1 = new Chart(ctx1, config1);
+            }
+
+            if (comparisonChart2) {
+                comparisonChart2.data = config2.data;
+                comparisonChart2.options = config2.options;
+                comparisonChart2.update('none');
+            } else {
+                comparisonChart2 = new Chart(ctx2, config2);
+            }
+        }
+
+        // Update results table
+        // Calculate statistics for comparison
+        function calculateStats(data) {
+            const stats = {
+                mean: {},
+                median: {},
+                stdDev: {}
+            };
+            
+            const metrics = ['time_taken_sec', 'tokens_per_sec', 'answer_length'];
+            
+            metrics.forEach(metric => {
+                const values = data.map(item => item[metric]).filter(val => !isNaN(val));
+                
+                // Mean
+                stats.mean[metric] = values.reduce((a, b) => a + b, 0) / values.length;
+                
+                // Median
+                const sorted = [...values].sort((a, b) => a - b);
+                const mid = Math.floor(sorted.length / 2);
+                stats.median[metric] = sorted.length % 2 === 0 
+                    ? (sorted[mid - 1] + sorted[mid]) / 2 
+                    : sorted[mid];
+                
+                // Standard Deviation
+                const mean = stats.mean[metric];
+                const squareDiffs = values.map(value => Math.pow(value - mean, 2));
+                stats.stdDev[metric] = Math.sqrt(squareDiffs.reduce((a, b) => a + b, 0) / values.length);
+            });
+            
+            return stats;
+        }
+
+        // Format percentage difference
+        function formatPercentDiff(value, baseValue) {
+            const diff = ((value - baseValue) / baseValue * 100).toFixed(1);
+            const sign = diff > 0 ? '+' : '';
+            return `${sign}${diff}%`;
+        }
+
+        function updateResultsTable() {
+            const modelFilter = tableModelFilter.value;
+            const promptFilter = tablePromptFilter.value;
+
+            // Filter data
+            let filteredData = benchmarkData;
+            if (modelFilter !== 'all') {
+                filteredData = filteredData.filter(item => item.model === modelFilter);
+            }
+            if (promptFilter !== 'all') {
+                filteredData = filteredData.filter(item => item.prompt === promptFilter);
+            }
+
+            // Calculate statistics
+            const stats = calculateStats(filteredData);
+
+            // Clear table
+            resultsTableBody.innerHTML = '';
+
+            // Add header row with statistics
+            const statsRow = document.createElement('tr');
+            statsRow.className = 'stats-row';
+            statsRow.innerHTML = `
+                <td colspan="2" style="font-weight: bold;">Statistics (Mean ± StdDev)</td>
+                <td>${stats.mean.time_taken_sec.toFixed(2)} ± ${stats.stdDev.time_taken_sec.toFixed(2)}</td>
+                <td>${stats.mean.tokens_per_sec.toFixed(2)} ± ${stats.stdDev.tokens_per_sec.toFixed(2)}</td>
+                <td>${stats.mean.memory_usage_mb?.toFixed(2) || 'N/A'} ± ${stats.stdDev.memory_usage_mb?.toFixed(2) || 'N/A'}</td>
+                <td>${Math.round(stats.mean.estimated_tokens || 0)} ± ${stats.stdDev.estimated_tokens?.toFixed(2) || 'N/A'}</td>
+                <td>${Math.round(stats.mean.answer_length)} ± ${stats.stdDev.answer_length.toFixed(2)}</td>
+                <td></td>
+                <td></td>
+            `;
+            resultsTableBody.appendChild(statsRow);
+
+            // Sort data by time taken
+            const sortedData = [...filteredData].sort((a, b) => a.time_taken_sec - b.time_taken_sec);
+
+            // Find baseline for comparisons
+            const baseline = sortedData[0];
+
+            // Add rows
+            sortedData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                // Model
+                const modelCell = document.createElement('td');
+                modelCell.textContent = item.model;
+                row.appendChild(modelCell);
+                
+                // Prompt
+                const promptCell = document.createElement('td');
+                promptCell.textContent = item.prompt.length > 50 ? 
+                    item.prompt.substring(0, 47) + '...' : item.prompt;
+                promptCell.title = item.prompt;
+                row.appendChild(promptCell);
+                
+                // Time with comparison
+                const timeCell = document.createElement('td');
+                const timeValue = item.time_taken_sec;
+                timeCell.innerHTML = `${timeValue.toFixed(2)}${
+                    item !== baseline ? 
+                    ` <span class="badge ${timeValue < baseline.time_taken_sec ? 'badge-success' : 'badge-danger'}">
+                        ${formatPercentDiff(timeValue, baseline.time_taken_sec)}
+                    </span>` : 
+                    ' <span class="badge badge-primary">Baseline</span>'
+                }`;
+                row.appendChild(timeCell);
+                
+                // Tokens/s with comparison
+                const tokensCell = document.createElement('td');
+                const tokensValue = item.tokens_per_sec;
+                if (tokensValue) {
+                    tokensCell.innerHTML = `${tokensValue.toFixed(2)}${
+                        item !== baseline ? 
+                        ` <span class="badge ${tokensValue > baseline.tokens_per_sec ? 'badge-success' : 'badge-danger'}">
+                            ${formatPercentDiff(tokensValue, baseline.tokens_per_sec)}
+                        </span>` : 
+                        ' <span class="badge badge-primary">Baseline</span>'
+                    }`;
+                } else {
+                    tokensCell.textContent = 'N/A';
+                }
+                row.appendChild(tokensCell);
+                
+                // Answer length with comparison
+                const lengthCell = document.createElement('td');
+                const lengthValue = item.answer_length || (item.answer ? item.answer.length : 0);
+                lengthCell.innerHTML = `${lengthValue}${
+                    item !== baseline ? 
+                    ` <span class="badge badge-info">
+                        ${formatPercentDiff(lengthValue, baseline.answer_length || (baseline.answer ? baseline.answer.length : 0))}
+                    </span>` : 
+                    ' <span class="badge badge-primary">Baseline</span>'
+                }`;
+                row.appendChild(lengthCell);
+                
+                // Timestamp
+                const timeStampCell = document.createElement('td');
+                if (item.timestamp) {
+                    const date = new Date(item.timestamp);
+                    timeStampCell.textContent = date.toLocaleString();
+                } else {
+                    timeStampCell.textContent = 'N/A';
+                }
+                row.appendChild(timeStampCell);
+                
+                // Answer preview
+                const answerCell = document.createElement('td');
+                if (item.answer) {
+                    const preview = document.createElement('div');
+                    preview.className = 'answer-preview';
+                    preview.textContent = item.answer.length > 200 ? 
+                        item.answer.substring(0, 197) + '...' : item.answer;
+                    answerCell.appendChild(preview);
+                } else {
+                    answerCell.textContent = 'No answer';
+                }
+                row.appendChild(answerCell);
+                
+                resultsTableBody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "models": [
+    "gemma3:1b",
+    "llama3.1:8b",
+    "gemma3:12b",
+    "gemma3:27b"
+  ],
+  "prompts": [
+    "What is the capital of Pakistan?",
+    "A farmer has 17 sheep and all but 9 run away. How many are left? Explain step by step.",
+    "Compare and contrast capitalism and socialism in terms of economic growth, wealth distribution, and long-term sustainability. Provide a detailed, structured essay with historical examples."
+  ],
+  "timeout_seconds": 6000000,
+  "max_retries": 3,
+  "output_file": "ollama_results.json",
+  "log_file": "ollama_benchmark.log"
+}
