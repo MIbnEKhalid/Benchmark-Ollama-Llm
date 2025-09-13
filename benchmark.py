@@ -5,6 +5,15 @@ import os
 import re
 from datetime import datetime, timedelta
 import statistics
+import platform
+import psutil
+import GPUtil
+import subprocess
+import re
+
+# Import WMI if on Windows
+if platform.system() == 'Windows':
+    import wmi
 
 class BenchmarkStats:
     """Track benchmark statistics"""
@@ -39,6 +48,98 @@ class BenchmarkStats:
             "avg_tokens_per_sec": statistics.mean(self.token_speeds) if self.token_speeds else 0
         }
 
+def get_cpu_info_windows():
+    """Get detailed CPU information on Windows"""
+    try:
+        w = wmi.WMI()
+        cpu_info = w.Win32_Processor()[0]
+        return {
+            "name": cpu_info.Name.strip(),
+            "manufacturer": cpu_info.Manufacturer.strip(),
+            "max_clock_speed": cpu_info.MaxClockSpeed,
+            "physical_cores": psutil.cpu_count(logical=False),
+            "total_cores": psutil.cpu_count(logical=True),
+            "max_frequency": psutil.cpu_freq().max if psutil.cpu_freq() else None,
+            "current_frequency": psutil.cpu_freq().current if psutil.cpu_freq() else None
+        }
+    except Exception as e:
+        return None
+
+def get_gpu_info_windows():
+    """Get detailed GPU information on Windows"""
+    try:
+        w = wmi.WMI()
+        gpu_info = []
+        for gpu in w.Win32_VideoController():
+            gpu_info.append({
+                "name": gpu.Name.strip(),
+                "driver_version": gpu.DriverVersion.strip() if gpu.DriverVersion else None,
+                "video_memory": gpu.AdapterRAM if hasattr(gpu, 'AdapterRAM') else None,
+                "video_processor": gpu.VideoProcessor.strip() if gpu.VideoProcessor else None,
+                "manufacturer": gpu.AdapterCompatibility.strip() if gpu.AdapterCompatibility else None
+            })
+        return gpu_info
+    except Exception as e:
+        return None
+
+def get_system_info():
+    """Collect system information"""
+    is_windows = platform.system() == 'Windows'
+    
+    # Base system info
+    system_info = {
+        "os": {
+            "system": platform.system(),
+            "release": platform.release(),
+            "version": platform.version(),
+            "machine": platform.machine(),
+            "processor": platform.processor()
+        },
+        "memory": {
+            "total": psutil.virtual_memory().total,
+            "available": psutil.virtual_memory().available,
+            "used": psutil.virtual_memory().used,
+            "percent": psutil.virtual_memory().percent
+        },
+        "cpu": {},
+        "gpu": []
+    }
+    
+    # Get detailed CPU info
+    if is_windows:
+        cpu_info = get_cpu_info_windows()
+        if cpu_info:
+            system_info["cpu"] = cpu_info
+    else:
+        system_info["cpu"] = {
+            "physical_cores": psutil.cpu_count(logical=False),
+            "total_cores": psutil.cpu_count(logical=True),
+            "max_frequency": psutil.cpu_freq().max if psutil.cpu_freq() else None,
+            "current_frequency": psutil.cpu_freq().current if psutil.cpu_freq() else None
+        }
+    
+    # Get GPU information
+    if is_windows:
+        gpu_info = get_gpu_info_windows()
+        if gpu_info:
+            system_info["gpu"] = gpu_info
+    else:
+        # Fallback to GPUtil for non-Windows systems
+        try:
+            gpus = GPUtil.getGPUs()
+            for gpu in gpus:
+                system_info["gpu"].append({
+                    "name": gpu.name,
+                    "memory_total": gpu.memoryTotal,
+                    "memory_used": gpu.memoryUsed,
+                    "load": gpu.load,
+                    "temperature": gpu.temperature
+                })
+        except Exception as e:
+            system_info["gpu"] = [{"error": str(e)}]
+    
+    return system_info
+
 class OllamaBenchmark:
     def __init__(self, config):
         self.models = config['models']
@@ -47,6 +148,7 @@ class OllamaBenchmark:
         self.max_retries = config.get('max_retries', 3)
         self.output_file = config['output_file']
         self.log_file = config['log_file']
+        self.system_info = get_system_info()
         self.results = self._load_results()
         self.stats = BenchmarkStats(len(self.models) * len(self.prompts))
 
@@ -54,7 +156,11 @@ class OllamaBenchmark:
         if os.path.exists(self.output_file):
             try:
                 with open(self.output_file, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    # Handle both old and new format
+                    if isinstance(data, dict) and "benchmark_results" in data:
+                        return data["benchmark_results"]
+                    return data
             except (json.JSONDecodeError, UnicodeDecodeError) as e:
                 self.log_message(f"Error loading existing results: {e}. Starting fresh.")
                 return []
@@ -75,9 +181,16 @@ class OllamaBenchmark:
         """Write results to JSON file in real-time"""
         backup_file = self.output_file + '.backup'
         try:
+            # Prepare output data with system info
+            output_data = {
+                "system_info": self.system_info,
+                "benchmark_results": self.results,
+                "timestamp": datetime.now().isoformat()
+            }
+            
             # First write to backup file
             with open(backup_file, "w", encoding="utf-8") as f:
-                json.dump(self.results, f, indent=2, ensure_ascii=False)
+                json.dump(output_data, f, indent=2, ensure_ascii=False)
             
             # If successful, rename to actual file
             if os.path.exists(self.output_file):

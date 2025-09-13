@@ -943,15 +943,46 @@
                 <h2 class="card-title">Upload Benchmark Results</h2>
             </div>
             <div class="file-inputs">
-                <div class="file-input">
-                    <label for="file1">Primary Results File:</label>
-                    <input type="file" id="file1" accept=".json" aria-required="true" aria-label="Choose primary results file">
-                </div>
-                <div class="file-input">
-                    <label for="file2">Comparison Results File (optional):</label>
-                    <input type="file" id="file2" accept=".json" aria-label="Choose optional comparison results file">
+                <div class="file-input-container">
+                    <div class="file-input">
+                        <label for="fileInput">Select Results Files:</label>
+                        <input type="file" id="fileInput" accept=".json" multiple aria-required="true" aria-label="Choose result files to compare">
+                    </div>
+                    <div id="selectedFiles" class="selected-files">
+                        <p>No files selected</p>
+                    </div>
                 </div>
             </div>
+
+            <style>
+                .file-input-container {
+                    width: 100%;
+                }
+                .selected-files {
+                    margin-top: 1rem;
+                    padding: 1rem;
+                    border-radius: 8px;
+                    background: var(--bg-primary);
+                    border: 1px dashed var(--border-color);
+                }
+                .selected-file {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 0.5rem;
+                    margin: 0.25rem 0;
+                    background: var(--bg-secondary);
+                    border-radius: 4px;
+                }
+                .selected-file button {
+                    padding: 0.25rem 0.5rem;
+                    min-height: auto;
+                    background: var(--danger);
+                }
+                .selected-file button:hover {
+                    background: #d61a6c;
+                }
+            </style>
             <div class="button-group" role="group" aria-label="Data management controls">
                 <button id="loadData" aria-label="Load selected data files">Load Data</button>
                 <button id="exportCSV" class="secondary" disabled aria-label="Export results to CSV file">Export CSV</button>
@@ -1064,15 +1095,14 @@
 
     <script>
         // Global variables
-        let benchmarkData = [];
-        let comparisonData = [];
+        let allBenchmarkData = new Map(); // Map to store data from multiple files
         let performanceChart;
         let comparisonChart1;
         let comparisonChart2;
 
         // DOM elements
-        const file1Input = document.getElementById('file1');
-        const file2Input = document.getElementById('file2');
+        const fileInput = document.getElementById('fileInput');
+        const selectedFilesContainer = document.getElementById('selectedFiles');
         const loadDataButton = document.getElementById('loadData');
         const promptFilter = document.getElementById('promptFilter');
         const metricFilter = document.getElementById('metricFilter');
@@ -1082,6 +1112,44 @@
         const tableModelFilter = document.getElementById('tableModelFilter');
         const tablePromptFilter = document.getElementById('tablePromptFilter');
         const resultsTableBody = document.getElementById('resultsTableBody');
+
+        // Event listener for file input changes
+        fileInput.addEventListener('change', (event) => {
+            selectedFilesContainer.innerHTML = '';
+            
+            if (event.target.files.length === 0) {
+                selectedFilesContainer.innerHTML = '<p>No files selected</p>';
+                return;
+            }
+
+            Array.from(event.target.files).forEach((file, index) => {
+                const fileElement = document.createElement('div');
+                fileElement.className = 'selected-file';
+                fileElement.innerHTML = `
+                    <span>${file.name}</span>
+                    <button type="button" data-index="${index}" aria-label="Remove ${file.name}">
+                        Remove
+                    </button>
+                `;
+                selectedFilesContainer.appendChild(fileElement);
+            });
+        });
+
+        // Event delegation for remove buttons
+        selectedFilesContainer.addEventListener('click', (event) => {
+            if (event.target.tagName === 'BUTTON') {
+                const index = parseInt(event.target.dataset.index);
+                const newFileList = Array.from(fileInput.files).filter((_, i) => i !== index);
+                
+                // Create a new FileList-like object
+                const dataTransfer = new DataTransfer();
+                newFileList.forEach(file => dataTransfer.items.add(file));
+                fileInput.files = dataTransfer.files;
+                
+                // Trigger change event to update the display
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
 
         // Theme management
         function initializeTheme() {
@@ -1124,10 +1192,12 @@
         
         // Export functions
         function exportToCSV() {
-            const headers = ['Model', 'Prompt', 'Time (s)', 'Tokens/s', 'Answer Length', 'Timestamp', 'Answer'];
+            const headers = ['Model', 'Prompt', 'Time (s)', 'Tokens/s', 'Answer Length', 'Timestamp', 'Answer', 'Source'];
             let csvContent = headers.join(',') + '\n';
             
-            benchmarkData.forEach(item => {
+            // Merge all data for export
+            const allData = Array.from(allBenchmarkData.values()).flat();
+            allData.forEach(item => {
                 const row = [
                     item.model,
                     `"${item.prompt.replace(/"/g, '""')}"`,
@@ -1144,12 +1214,14 @@
         }
         
         function exportToJSON() {
-            const jsonContent = JSON.stringify({
-                data: benchmarkData,
-
-                exportDate: new Date().toISOString(),
-                comparisonData: comparisonData.length > 0 ? comparisonData : undefined
-            }, null, 2);
+            const exportData = {
+                data: Array.from(allBenchmarkData.entries()).map(([filename, data]) => ({
+                    source: filename,
+                    records: data
+                })),
+                exportDate: new Date().toISOString()
+            };
+            const jsonContent = JSON.stringify(exportData, null, 2);
             
             downloadFile('benchmark_results.json', 'application/json;charset=utf-8;', jsonContent);
         }
@@ -1274,56 +1346,65 @@
         });
 
         // Load JSON files
-        function loadFiles() {
-            const file1 = file1Input.files[0];
-            if (!file1) {
+        async function loadFiles() {
+            const files = fileInput.files;
+            if (!files.length) {
                 alert('Please select at least one JSON file');
                 return;
             }
 
-            const reader1 = new FileReader();
-            reader1.onload = function(e) {
-                try {
-                    benchmarkData = JSON.parse(e.target.result);
-                    initializeUI();
-                    updatePerformanceChart();
-                    updateResultsTable();
-                } catch (error) {
-                    alert('Error parsing JSON file: ' + error.message);
-                }
-            };
-            reader1.readAsText(file1);
+            allBenchmarkData.clear();
 
-            const file2 = file2Input.files[0];
-            if (file2) {
-                const reader2 = new FileReader();
-                reader2.onload = function(e) {
-                    try {
-                        comparisonData = JSON.parse(e.target.result);
-                        // Add a source field to each record to distinguish them
-                        benchmarkData.forEach(item => item.source = 'primary');
-                        comparisonData.forEach(item => item.source = 'comparison');
-                        // Merge data for display
-                        benchmarkData = [...benchmarkData, ...comparisonData];
-                        // Update UI with combined data
-                        initializeUI();
-                        updatePerformanceChart();
-                        updateResultsTable();
-                    } catch (error) {
-                        alert('Error parsing second JSON file: ' + error.message);
-                    }
-                };
-                reader2.readAsText(file2);
-            } else {
-                comparisonData = [];
+            try {
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const data = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = e => {
+                            try {
+                                const parsedData = JSON.parse(e.target.result);
+                                resolve(parsedData);
+                            } catch (error) {
+                                reject(`Error parsing ${file.name}: ${error.message}`);
+                            }
+                        };
+                        reader.onerror = () => reject(`Error reading ${file.name}`);
+                        reader.readAsText(file);
+                    });
+
+                    // Add source information to each record
+                    const dataWithSource = data.map(item => ({
+                        ...item,
+                        source: file.name
+                    }));
+
+                    allBenchmarkData.set(file.name, dataWithSource);
+                }
+
+                // Merge all data for display
+                const benchmarkData = Array.from(allBenchmarkData.values()).flat();
+
+                // Update UI with combined data
+                initializeUI();
+                updatePerformanceChart();
+                updateResultsTable();
+
+                // Enable export buttons
+                document.getElementById('exportCSV').disabled = false;
+                document.getElementById('exportJSON').disabled = false;
+                document.getElementById('exportCharts').disabled = false;
+
+            } catch (error) {
+                alert(error);
             }
         }
 
         // Initialize UI elements with data
         function initializeUI() {
-            // Get unique prompts and models
-            const prompts = [...new Set(benchmarkData.map(item => item.prompt))];
-            const models = [...new Set(benchmarkData.map(item => item.model))];
+            // Merge all data for prompts and models
+            const allData = Array.from(allBenchmarkData.values()).flat();
+            const prompts = [...new Set(allData.map(item => item.prompt))];
+            const models = [...new Set(allData.map(item => item.model))];
 
             // Populate prompt filters
             populateSelect(promptFilter, prompts, 'all');
@@ -1361,71 +1442,60 @@
             const selectedPrompt = promptFilter.value;
             const selectedMetric = metricFilter.value;
             
-            // Filter data based on selected prompt
-            let filteredData = benchmarkData;
+            // Merge all data and filter based on selected prompt
+            let filteredData = Array.from(allBenchmarkData.values()).flat();
             if (selectedPrompt !== 'all') {
-                filteredData = benchmarkData.filter(item => item.prompt === selectedPrompt);
+                filteredData = filteredData.filter(item => item.prompt === selectedPrompt);
             }
 
             // Group data by model
             const models = [...new Set(filteredData.map(item => item.model))];
             const datasets = [];
 
-            // Primary dataset
-            const primaryData = models.map(model => {
-                const modelData = filteredData.filter(item => item.model === model);
-                const values = modelData.map(item => item[selectedMetric] || 0);
-                return values.reduce((a, b) => a + b, 0) / values.length;
-            });
+            // Generate datasets for each file source
+            const colors = [
+                { gradient: ['rgba(54, 162, 235, 0.8)', 'rgba(54, 162, 235, 0.3)'], border: 'rgba(54, 162, 235, 1)' },
+                { gradient: ['rgba(255, 99, 132, 0.8)', 'rgba(255, 99, 132, 0.3)'], border: 'rgba(255, 99, 132, 1)' },
+                { gradient: ['rgba(75, 192, 192, 0.8)', 'rgba(75, 192, 192, 0.3)'], border: 'rgba(75, 192, 192, 1)' },
+                { gradient: ['rgba(255, 206, 86, 0.8)', 'rgba(255, 206, 86, 0.3)'], border: 'rgba(255, 206, 86, 1)' },
+                { gradient: ['rgba(153, 102, 255, 0.8)', 'rgba(153, 102, 255, 0.3)'], border: 'rgba(153, 102, 255, 1)' }
+            ];
 
-            datasets.push({
-                label: 'Primary Results',
-                data: primaryData,
-                backgroundColor: (context) => {
-                    const gradient = context.chart.ctx.createLinearGradient(0, 0, 0, context.chart.height);
-                    gradient.addColorStop(0, 'rgba(54, 162, 235, 0.8)');
-                    gradient.addColorStop(1, 'rgba(54, 162, 235, 0.3)');
-                    return gradient;
-                },
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 2,
-                shadowColor: 'rgba(54, 162, 235, 0.3)',
-                shadowBlur: 10,
-                shadowOffsetX: 0,
-                shadowOffsetY: 4
-            });
-
-            // Comparison dataset if available
-            if (comparisonData.length > 0) {
-                let compFilteredData = comparisonData;
-                if (selectedPrompt !== 'all') {
-                    compFilteredData = comparisonData.filter(item => item.prompt === selectedPrompt);
+            // Group data by source (file name)
+            const dataBySources = new Map();
+            filteredData.forEach(item => {
+                if (!dataBySources.has(item.source)) {
+                    dataBySources.set(item.source, []);
                 }
+                dataBySources.get(item.source).push(item);
+            });
 
-                const compModels = [...new Set(compFilteredData.map(item => item.model))];
-                const compData = compModels.map(model => {
-                    const modelData = compFilteredData.filter(item => item.model === model);
+            // Create datasets for each source
+            Array.from(dataBySources.entries()).forEach(([source, sourceData], index) => {
+                const color = colors[index % colors.length];
+                const sourceModels = models.map(model => {
+                    const modelData = sourceData.filter(item => item.model === model);
                     const values = modelData.map(item => item[selectedMetric] || 0);
-                    return values.reduce((a, b) => a + b, 0) / values.length;
+                    return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
                 });
 
                 datasets.push({
-                    label: 'Comparison Results',
-                    data: compData,
+                    label: source,
+                    data: sourceModels,
                     backgroundColor: (context) => {
                         const gradient = context.chart.ctx.createLinearGradient(0, 0, 0, context.chart.height);
-                        gradient.addColorStop(0, 'rgba(255, 99, 132, 0.8)');
-                        gradient.addColorStop(1, 'rgba(255, 99, 132, 0.3)');
+                        gradient.addColorStop(0, color.gradient[0]);
+                        gradient.addColorStop(1, color.gradient[1]);
                         return gradient;
                     },
-                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderColor: color.border,
                     borderWidth: 2,
-                    shadowColor: 'rgba(255, 99, 132, 0.3)',
+                    shadowColor: color.border.replace('1)', '0.3)'),
                     shadowBlur: 10,
                     shadowOffsetX: 0,
                     shadowOffsetY: 4
                 });
-            }
+            });
 
             // Get metric label
             const metricLabels = {
@@ -1631,55 +1701,63 @@
 
             if (!model1 || !model2) return;
 
-            // Filter data for model 1
-            let model1Data = benchmarkData.filter(item => item.model === model1);
-            if (prompt !== 'all') {
-                model1Data = model1Data.filter(item => item.prompt === prompt);
-            }
-
-            // Filter data for model 2
-            let model2Data = benchmarkData.filter(item => item.model === model2);
-            if (prompt !== 'all') {
-                model2Data = model2Data.filter(item => item.prompt === prompt);
-            }
+            // Get all data sources
+            const dataSources = Array.from(allBenchmarkData.keys());
 
             // Prepare data for charts
             const metrics = ['time_taken_sec', 'tokens_per_sec', 'answer_length'];
             const metricLabels = ['Response Time (s)', 'Tokens/s', 'Answer Length'];
             
-            const model1Values = metrics.map(metric => {
-                const values = model1Data.map(item => item[metric] || 0);
-                return values.reduce((a, b) => a + b, 0) / values.length;
-            });
-
-            const model2Values = metrics.map(metric => {
-                const values = model2Data.map(item => item[metric] || 0);
-                return values.reduce((a, b) => a + b, 0) / values.length;
-            });
+            // Process data for each model and source
+            function getModelData(modelName) {
+                const modelDatasets = dataSources.map(source => {
+                    const sourceData = allBenchmarkData.get(source);
+                    let modelData = sourceData.filter(item => item.model === modelName);
+                    if (prompt !== 'all') {
+                        modelData = modelData.filter(item => item.prompt === prompt);
+                    }
+                    
+                    const values = metrics.map(metric => {
+                        const metricValues = modelData.map(item => item[metric] || 0);
+                        return metricValues.length > 0 ? 
+                            metricValues.reduce((a, b) => a + b, 0) / metricValues.length : 0;
+                    });
+                    
+                    return {
+                        source: source,
+                        values: values
+                    };
+                });
+                
+                return modelDatasets;
+            }
+            
+            const model1Data = getModelData(model1);
+            const model2Data = getModelData(model2);
 
             const isDarkMode = true;
             const gridColor = isDarkMode ? '#404040' : '#e5e5e5';
             const textColor = isDarkMode ? '#ffffff' : '#333333';
 
-            // Enhanced radar chart configuration
-            const radarConfig = (model, values, colors) => ({
+            // Enhanced radar chart configuration with multiple datasets support
+            const radarConfig = (model, datasets, colors) => ({
                 type: 'radar',
                 data: {
                     labels: metricLabels,
-                    datasets: [{
-                        label: model,
-                        data: values,
-                        backgroundColor: colors.background,
-                        borderColor: colors.border,
-                        pointBackgroundColor: colors.point,
+                    datasets: datasets.map((dataset, index) => ({
+                        label: `${model} (${dataset.source})`,
+                        data: dataset.values,
+                        backgroundColor: colors[index].background,
+                        borderColor: colors[index].border,
+                        pointBackgroundColor: colors[index].point,
                         pointBorderColor: isDarkMode ? '#2d2d2d' : '#ffffff',
                         pointHoverBackgroundColor: isDarkMode ? '#2d2d2d' : '#ffffff',
-                        pointHoverBorderColor: colors.border,
+                        pointHoverBorderColor: colors[index].border,
                         borderWidth: 2,
                         pointRadius: 4,
                         pointHoverRadius: 6,
                         lineTension: 0.2
-                    }]
+                    }))
                 },
                 options: {
                     responsive: true,
@@ -1772,18 +1850,37 @@
 
             // Create or update radar charts with enhanced configurations
             const ctx1 = document.getElementById('comparisonChart1').getContext('2d');
-            const config1 = radarConfig(model1, model1Values, {
-                background: 'rgba(54, 162, 235, 0.15)',
-                border: 'rgba(54, 162, 235, 0.8)',
-                point: 'rgba(54, 162, 235, 1)'
-            });
+            const sourceColors = [
+                {
+                    background: 'rgba(54, 162, 235, 0.15)',
+                    border: 'rgba(54, 162, 235, 0.8)',
+                    point: 'rgba(54, 162, 235, 1)'
+                },
+                {
+                    background: 'rgba(75, 192, 192, 0.15)',
+                    border: 'rgba(75, 192, 192, 0.8)',
+                    point: 'rgba(75, 192, 192, 1)'
+                },
+                {
+                    background: 'rgba(255, 206, 86, 0.15)',
+                    border: 'rgba(255, 206, 86, 0.8)',
+                    point: 'rgba(255, 206, 86, 1)'
+                },
+                {
+                    background: 'rgba(153, 102, 255, 0.15)',
+                    border: 'rgba(153, 102, 255, 0.8)',
+                    point: 'rgba(153, 102, 255, 1)'
+                }
+            ];
+
+            const config1 = radarConfig(model1, model1Data, sourceColors);
 
             const ctx2 = document.getElementById('comparisonChart2').getContext('2d');
-            const config2 = radarConfig(model2, model2Values, {
-                background: 'rgba(255, 99, 132, 0.15)',
-                border: 'rgba(255, 99, 132, 0.8)',
-                point: 'rgba(255, 99, 132, 1)'
-            });
+            const config2 = radarConfig(model2, model2Data, sourceColors.map(color => ({
+                background: color.background.replace('235', '132').replace('192', '99'),
+                border: color.border.replace('235', '132').replace('192', '99'),
+                point: color.point.replace('235', '132').replace('192', '99')
+            })));
 
             if (comparisonChart1) {
                 comparisonChart1.data = config1.data;
@@ -1816,8 +1913,8 @@
             const modelFilter = tableModelFilter.value;
             const promptFilter = tablePromptFilter.value;
 
-            // Filter data
-            let filteredData = benchmarkData;
+            // Merge all data and apply filters
+            let filteredData = Array.from(allBenchmarkData.values()).flat();
             if (modelFilter !== 'all') {
                 filteredData = filteredData.filter(item => item.model === modelFilter);
             }
